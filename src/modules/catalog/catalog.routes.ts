@@ -68,6 +68,37 @@ router.get('/productos', optionalToken, getProductos);
  *     responses:
  *       201:
  *         description: Producto creado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 usuarioId:
+ *                   type: integer
+ *                 nombre:
+ *                   type: string
+ *                 descripcion:
+ *                   type: string
+ *                   nullable: true
+ *                 precio:
+ *                   type: number
+ *                   nullable: true
+ *                 stock:
+ *                   type: integer
+ *                   nullable: true
+ *                 imagenUrl:
+ *                   type: string
+ *                   nullable: true
+ *                 activo:
+ *                   type: boolean
+ *                 fechaCreacion:
+ *                   type: string
+ *                   format: date-time
+ *                 fechaActualizacion:
+ *                   type: string
+ *                   format: date-time
  *       400:
  *         description: nombre es requerido
  */

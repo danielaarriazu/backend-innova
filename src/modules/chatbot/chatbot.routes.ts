@@ -10,9 +10,13 @@ const router = Router();
  *     tags: [Chatbot]
  *     summary: Enviar un mensaje al bot
  *     description: |
- *       Motor inteligente con dos modos de operación:
- *       - **Con usuarioId:** usa las FAQs y configuración del emprendedor (mock si no hay DB)
- *       - **Sin usuarioId:** keywords genéricas hardcodeadas
+ *       Envía un mensaje del cliente al bot del emprendedor. El bot responde según las FAQs y configuración del negocio.
+ *
+ *       Las consultas pueden llegar de dos formas:
+ *
+ *       **Por botón (UI):** el frontend manda el texto del botón como `mensaje`. Por ejemplo, cuando el cliente toca "Ver catálogo", el frontend envía `{ "mensaje": "ver catálogo", ... }`.
+ *
+ *       **Por palabra (texto libre):** el cliente escribe directamente en el chat. El bot detecta keywords en el texto y responde con la FAQ que más coincide. Si ninguna coincide, responde con un mensaje genérico del emprendedor.
  *
  *       **Ejemplos de prueba por emprendedor:**
  *

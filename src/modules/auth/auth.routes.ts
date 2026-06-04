@@ -29,9 +29,41 @@ const router = Router();
  *               telefono:
  *                 type: string
  *                 example: "+5491112345678"
+ *               rol:
+ *                 type: string
+ *                 example: emprendedor
+ *                 description: "Default: emprendedor"
+ *               estado:
+ *                 type: string
+ *                 example: activo
+ *                 description: "Default: activo"
  *     responses:
  *       201:
  *         description: Usuario registrado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 nombre:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 rol:
+ *                   type: string
+ *                 telefono:
+ *                   type: string
+ *                 estado:
+ *                   type: string
+ *                 fechaRegistro:
+ *                   type: string
+ *                   format: date-time
+ *                 ultimaSesion:
+ *                   type: string
+ *                   format: date-time
+ *                   nullable: true
  *       409:
  *         description: El email ya está registrado
  *       400:

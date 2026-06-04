@@ -6,9 +6,29 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'Chatbot InnovaLab — API',
       version: '2.0.0',
-      description:
-        'API REST modular del chatbot comercial para emprendedores. ' +
-        'Sprint 1 — Semana 3. Stack: Node.js + Express + TypeScript + PostgreSQL (Supabase) + Prisma.',
+      description: `API REST modular del chatbot comercial para emprendedores. Sprint 2 · Semana 3. Stack: Node.js + Express + TypeScript + PostgreSQL + Prisma.
+
+---
+
+**Endpoints principales por módulo**
+
+- **Auth** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/auth/register · POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/auth/login
+- **Chatbot** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/chatbot/chat
+- **Catálogo** → GET https://backend-apirest-chatbot-swagger-render.onrender.com/api/catalog/productos?usuarioId=1
+- **Consultas** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/consultations?usuarioId=1
+- **WhatsApp mock** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/whatsapp/session/init
+
+---
+
+**Probalo con estos negocios de ejemplo**
+
+| usuarioId | Negocio | Sugerencias para escribir |
+|-----------|---------|--------------------------|
+| 1 | Panadería García | "hacen envíos?", "cómo pago", "quiero encargar una torta" |
+| 2 | Ferretería López | "tienen garantía?", "hacen entregas?", "puedo devolver?" |
+| 3 | Ropa & Accesorios Mía | "hola", "tienen talles?", "cuánto sale?" |
+
+Usá el endpoint **/api/chatbot/chat** con el body \`{ "mensaje": "...", "sessionId": "cliente-1", "usuarioId": 1 }\` para ver el bot en acción.`,
     },
     servers: [
       {

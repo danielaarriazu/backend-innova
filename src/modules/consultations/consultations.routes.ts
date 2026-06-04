@@ -59,9 +59,46 @@ router.get('/', verificarToken, getConsultas);
  *                 type: string
  *                 example: normal
  *                 description: "Valores posibles: baja, normal, alta, urgente"
+ *               derivadaA:
+ *                 type: string
+ *                 description: Agente o canal al que se deriva la consulta (opcional)
  *     responses:
  *       201:
  *         description: Consulta creada con estado "nueva"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 usuarioId:
+ *                   type: integer
+ *                 estadoConsultaId:
+ *                   type: integer
+ *                 tipoConsulta:
+ *                   type: string
+ *                 prioridad:
+ *                   type: string
+ *                 canal:
+ *                   type: string
+ *                 asunto:
+ *                   type: string
+ *                 descripcion:
+ *                   type: string
+ *                 derivadaA:
+ *                   type: string
+ *                   nullable: true
+ *                 fechaCreacion:
+ *                   type: string
+ *                   format: date-time
+ *                 fechaActualizacion:
+ *                   type: string
+ *                   format: date-time
+ *                 fechaCierre:
+ *                   type: string
+ *                   format: date-time
+ *                   nullable: true
  *       400:
  *         description: usuarioId es requerido
  */
