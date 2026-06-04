@@ -15,9 +15,9 @@ const router = Router();
  *       Devuelve los productos activos para mostrarlos como opciones (Producto A, Producto B...).
  *
  *       **URLs de prueba (sin DB):**
- *       - Panadería García → `https://backend-apirest-chatbot-swagger-render.onrender.com/api/catalog/productos?usuarioId=1`
- *       - Ferretería López → `https://backend-apirest-chatbot-swagger-render.onrender.com/api/catalog/productos?usuarioId=2`
- *       - Ropa & Accesorios Mía → `https://backend-apirest-chatbot-swagger-render.onrender.com/api/catalog/productos?usuarioId=3`
+ *       - Panadería García → `https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=1`
+ *       - Ferretería López → `https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=2`
+ *       - Ropa & Accesorios Mía → `https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=3`
  *     parameters:
  *       - in: query
  *         name: usuarioId

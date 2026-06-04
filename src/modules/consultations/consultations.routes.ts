@@ -29,9 +29,9 @@ router.get('/', verificarToken, getConsultas);
  *       Guardar el `consultaId` que devuelve — se usa en todo el flujo (mensajes, leads, derivaciones).
  *
  *       **Ejemplos de prueba (sin DB no persiste, pero valida la estructura):**
- *       - Cliente de Panadería García → `POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/consultations?usuarioId=1`
- *       - Cliente de Ferretería López → `POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/consultations?usuarioId=2`
- *       - Cliente de Ropa & Accesorios Mía → `POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/consultations?usuarioId=3`
+ *       - Cliente de Panadería García → `POST https://chatbot-innova-backend.onrender.com/api/consultations?usuarioId=1`
+ *       - Cliente de Ferretería López → `POST https://chatbot-innova-backend.onrender.com/api/consultations?usuarioId=2`
+ *       - Cliente de Ropa & Accesorios Mía → `POST https://chatbot-innova-backend.onrender.com/api/consultations?usuarioId=3`
  *     parameters:
  *       - in: query
  *         name: usuarioId

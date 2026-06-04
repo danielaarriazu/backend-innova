@@ -12,11 +12,11 @@ const options: swaggerJsdoc.Options = {
 
 **Endpoints principales por módulo**
 
-- **Auth** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/auth/register · POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/auth/login
-- **Chatbot** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/chatbot/chat
-- **Catálogo** → GET https://backend-apirest-chatbot-swagger-render.onrender.com/api/catalog/productos?usuarioId=1
-- **Consultas** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/consultations?usuarioId=1
-- **WhatsApp mock** → POST https://backend-apirest-chatbot-swagger-render.onrender.com/api/whatsapp/session/init
+- **Auth** → POST https://chatbot-innova-backend.onrender.com/api/auth/register · POST https://chatbot-innova-backend.onrender.com/api/auth/login
+- **Chatbot** → POST https://chatbot-innova-backend.onrender.com/api/chatbot/chat
+- **Catálogo** → GET https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=1
+- **Consultas** → POST https://chatbot-innova-backend.onrender.com/api/consultations?usuarioId=1
+- **WhatsApp mock** → POST https://chatbot-innova-backend.onrender.com/api/whatsapp/session/init
 
 ---
 
