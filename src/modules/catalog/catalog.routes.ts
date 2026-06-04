@@ -9,22 +9,24 @@ const router = Router();
  * /api/catalog/productos:
  *   get:
  *     tags: [Catalog]
- *     summary: Listar productos del emprendedor autenticado
+ *     summary: Listar productos del emprendedor
  *     description: |
  *       **🔘 Botón UI: "Ver catálogo"** — se llama cuando el usuario toca este botón en el chat.
  *       Devuelve los productos activos para mostrarlos como opciones (Producto A, Producto B...).
  *
- *       **URLs de prueba (sin DB):**
- *       - Panadería García → `https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=1`
- *       - Ferretería López → `https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=2`
- *       - Ropa & Accesorios Mía → `https://chatbot-innova-backend.onrender.com/api/catalog/productos?usuarioId=3`
+ *       **Emprendedores de prueba:**
+ *       - `1` → Panadería García (4 productos)
+ *       - `2` → Ferretería López (5 productos)
+ *       - `3` → Ropa & Accesorios Mía (4 productos)
  *     parameters:
  *       - in: query
  *         name: usuarioId
+ *         required: true
  *         schema:
  *           type: integer
- *         description: ID del emprendedor (reemplaza al token para clientes anónimos). Probar con 1, 2 o 3.
- *         example: 1
+ *           enum: [1, 2, 3]
+ *           example: 1
+ *         description: "ID del emprendedor dueño del chatbot. 1=Panadería García | 2=Ferretería López | 3=Ropa & Accesorios Mía"
  *     responses:
  *       200:
  *         description: Lista de productos activos
@@ -110,18 +112,23 @@ router.post('/productos', verificarToken, postProducto);
  *   get:
  *     tags: [Catalog]
  *     summary: Obtener un producto por ID
- *     description: >
+ *     description: |
  *       **🔘 Botón UI: "Producto A / B / C"** — se llama cuando el usuario selecciona un producto específico de la lista.
  *       Devuelve detalle completo: descripción, precio, stock e imagen.
- *       Desde esta pantalla el usuario puede tocar "Comprar ahora" (flujo de presupuesto) o "Ver otros productos".
- *     security:
- *       - bearerAuth: []
+ *
+ *       **IDs de prueba por emprendedor:**
+ *       - Panadería García → `101` Torta de chocolate · `102` Medialunas x12 · `103` Pan de campo · `104` Facturas x6
+ *       - Ferretería López → `201` Pintura látex · `202` Taladro percutor · `203` Cinta métrica · `204` Set tornillos · `205` Llave inglesa
+ *       - Ropa & Accesorios Mía → `301` Remera básica · `302` Vestido floral · `303` Zapatillas urbanas · `304` Cartera cuero eco
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *           enum: [101, 102, 103, 104, 201, 202, 203, 204, 205, 301, 302, 303, 304]
+ *           example: 101
+ *         description: "ID del producto. Panadería: 101-104 | Ferretería: 201-205 | Ropa: 301-304"
  *     responses:
  *       200:
  *         description: Producto encontrado

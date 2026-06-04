@@ -12,10 +12,11 @@ export const isActivo = (producto: { activo: boolean }) => producto.activo;
 
 export const listarProductos = async (usuarioId: number) => {
   try {
-    return await prisma.producto.findMany({
+    const result = await prisma.producto.findMany({
       where: { usuarioId, activo: true },
       orderBy: { nombre: 'asc' },
     });
+    return result.length > 0 ? result : getMockProductos(usuarioId);
   } catch {
     return getMockProductos(usuarioId);
   }
@@ -35,7 +36,8 @@ export const crearProducto = async (data: {
 
 export const obtenerProducto = async (id: number) => {
   try {
-    return await prisma.producto.findUnique({ where: { id } });
+    const result = await prisma.producto.findUnique({ where: { id } });
+    return result ?? getMockProducto(id);
   } catch {
     return getMockProducto(id);
   }
