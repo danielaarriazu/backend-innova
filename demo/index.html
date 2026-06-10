@@ -280,6 +280,55 @@
       font-size: 14px;
     }
 
+    /* ── Request log ── */
+    #request-log {
+      background: #0f172a;
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+    }
+    #request-log .log-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid #1e293b;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    #request-log .log-header span { color: #22d3ee; }
+    #log-entries {
+      padding: 10px 0;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #log-entries:empty::after {
+      content: 'Esperando llamadas al backend...';
+      color: #334155;
+      font-size: 12px;
+      padding: 8px 14px;
+    }
+    .log-entry {
+      padding: 5px 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      animation: logslide .15s ease;
+    }
+    .log-entry.new { background: #0d2137; }
+    @keyframes logslide { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+    .log-time  { color: #475569; flex-shrink: 0; font-size: 11px; }
+    .log-action { color: #94a3b8; flex-shrink: 0; }
+    .log-arrow  { color: #334155; flex-shrink: 0; }
+    .log-method-post { color: #60a5fa; font-weight: 700; flex-shrink: 0; }
+    .log-method-get  { color: #34d399; font-weight: 700; flex-shrink: 0; }
+    .log-route { color: #e2e8f0; }
+
     /* ── Error toast ── */
     #error-toast {
       display: none;
@@ -390,6 +439,13 @@
       <div id="catalog-content"></div>
     </div>
 
+    <div id="request-log">
+      <div class="log-header">
+        Request log &mdash; <span id="log-count">0 llamadas</span>
+      </div>
+      <div id="log-entries"></div>
+    </div>
+
   </div>
 
 </main>
@@ -420,6 +476,7 @@
   let usuarioIdActual = null;
   let sessionId = null;
   let cargandoChat = false;
+  let totalLlamadas = 0;
 
   // ── Selección de emprendedor ──────────────────────────────────────────────
 
@@ -440,9 +497,12 @@
     document.getElementById('btn-catalog').disabled = false;
     document.getElementById('msg-input').focus();
 
-    // Limpiar chat y catálogo previos
+    // Limpiar chat, catálogo y log previos
     document.getElementById('chat-window').innerHTML = '';
     document.getElementById('catalog-section').classList.remove('visible');
+    document.getElementById('log-entries').innerHTML = '';
+    totalLlamadas = 0;
+    document.getElementById('log-count').textContent = '0 llamadas';
 
     // Chips de sugerencias
     const chipsEl = document.getElementById('quick-chips');
@@ -473,6 +533,7 @@
 
     input.value = '';
     agregarBurbuja('user', mensaje);
+    logRequest('Usuario preguntó', 'POST', '/api/chatbot/chat');
     mostrarTyping();
     cargandoChat = true;
     document.getElementById('btn-send').disabled = true;
@@ -518,6 +579,7 @@
     section.classList.add('visible');
     title.textContent = `Catálogo — ${emp.nombre}`;
     content.innerHTML = '<div class="catalog-loading">Cargando productos...</div>';
+    logRequest('Ver catálogo', 'GET', `/api/catalog/productos?usuarioId=${usuarioIdActual}`);
     section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     try {
@@ -629,6 +691,37 @@
   function scrollChat() {
     const win = document.getElementById('chat-window');
     win.scrollTop = win.scrollHeight;
+  }
+
+  // ── Request log ───────────────────────────────────────────────────────────
+
+  function logRequest(accion, metodo, ruta) {
+    const entries = document.getElementById('log-entries');
+    const MAX = 5;
+
+    totalLlamadas++;
+    document.getElementById('log-count').textContent =
+      `${totalLlamadas} llamada${totalLlamadas !== 1 ? 's' : ''}`;
+
+    const now = new Date();
+    const time = now.toTimeString().slice(0, 8);
+
+    const entry = document.createElement('div');
+    entry.className = 'log-entry new';
+    entry.innerHTML = `
+      <span class="log-time">${time}</span>
+      <span class="log-action">${esc(accion)}</span>
+      <span class="log-arrow">→</span>
+      <span class="${metodo === 'POST' ? 'log-method-post' : 'log-method-get'}">${metodo}</span>
+      <span class="log-route">${esc(ruta)}</span>
+    `;
+
+    entries.insertBefore(entry, entries.firstChild);
+    setTimeout(() => entry.classList.remove('new'), 600);
+
+    while (entries.children.length > MAX) {
+      entries.removeChild(entries.lastChild);
+    }
   }
 
   // ── Utils ─────────────────────────────────────────────────────────────────
