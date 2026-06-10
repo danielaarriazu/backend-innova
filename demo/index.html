@@ -352,6 +352,50 @@
     .log-method-get  { color: #34d399; font-weight: 700; flex-shrink: 0; }
     .log-route { color: #e2e8f0; }
 
+    /* ── Mode toggle ── */
+    .mode-bar {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mode-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-right: 4px; }
+    .toggle-pill {
+      display: flex;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .toggle-opt {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s, box-shadow .15s;
+      background: transparent;
+      color: var(--muted);
+    }
+    .toggle-opt.active-emp {
+      background: #fff;
+      color: var(--badge-db);
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+    .toggle-opt.active-cli {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+
+    /* update auth-status for visitante mode */
+    #auth-status .auth-dot.visitante { background: #94a3b8; }
+    #auth-status .auth-label.visitante { color: #64748b; }
+
+    /* error log entry */
+    .log-entry.error .log-route { color: #f87171; }
+    .log-entry.error .log-action { color: #fca5a5; }
+
     /* ── Error toast ── */
     #error-toast {
       display: none;
@@ -414,9 +458,9 @@
       </div>
       <div id="auth-status">
         <div class="auth-row">
-          <div class="auth-dot"></div>
-          <span class="auth-label">Sesión activa</span>
-          <span>&middot; rol: emprendedor</span>
+          <div class="auth-dot" id="auth-dot"></div>
+          <span class="auth-label" id="auth-label">Sesión activa</span>
+          <span id="auth-sublabel">&middot; rol: emprendedor</span>
         </div>
         <div class="auth-token" id="auth-token-preview"></div>
       </div>
@@ -446,6 +490,13 @@
 
     <div class="panel" id="chat-panel">
       <div class="panel-header" id="chat-title">Chat &mdash; ningún emprendedor seleccionado</div>
+      <div class="mode-bar">
+        <span class="mode-label">Modo vista</span>
+        <div class="toggle-pill">
+          <button class="toggle-opt active-emp" id="btn-modo-emp" onclick="toggleModo('emprendedor')">Emprendedor</button>
+          <button class="toggle-opt" id="btn-modo-cli" onclick="toggleModo('cliente')">Cliente</button>
+        </div>
+      </div>
       <div class="chat-window" id="chat-window"></div>
       <div class="chat-input-area">
         <div class="input-row">
@@ -513,6 +564,7 @@
   let usuarioIdActual = null;
   let sessionId = null;
   let tokenActual = null;
+  let modoActual = 'emprendedor';
   let cargandoChat = false;
   let totalLlamadas = 0;
 
@@ -542,11 +594,25 @@
     totalLlamadas = 0;
     document.getElementById('log-count').textContent = '0 llamadas';
 
-    // Cargar token hardcodeado y registrar en log
-    tokenActual = TOKENS[id];
+    // Cargar sesión según el modo activo
     document.getElementById('auth-status').classList.add('visible');
-    document.getElementById('auth-token-preview').textContent = 'Token: ' + tokenActual.slice(0, 25) + '...';
-    logRequest('Sesión iniciada', '—', 'token cargado (hardcoded demo)');
+    if (modoActual === 'emprendedor') {
+      tokenActual = TOKENS[id];
+      document.getElementById('auth-dot').className = 'auth-dot';
+      document.getElementById('auth-label').className = 'auth-label';
+      document.getElementById('auth-label').textContent = 'Emprendedor · sesión activa';
+      document.getElementById('auth-sublabel').textContent = '';
+      document.getElementById('auth-token-preview').textContent = 'Token: ' + tokenActual.slice(0, 25) + '...';
+      logRequest('Sesión iniciada', '—', 'token cargado (hardcoded demo)');
+    } else {
+      tokenActual = null;
+      document.getElementById('auth-dot').className = 'auth-dot visitante';
+      document.getElementById('auth-label').className = 'auth-label visitante';
+      document.getElementById('auth-label').textContent = 'Visitante · sin sesión';
+      document.getElementById('auth-sublabel').textContent = '';
+      document.getElementById('auth-token-preview').textContent = '';
+      logRequest('Vista cliente', '—', 'sin token — modo visitante');
+    }
 
     // Chips de sugerencias
     const chipsEl = document.getElementById('quick-chips');
@@ -583,17 +649,20 @@
     document.getElementById('btn-send').disabled = true;
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (tokenActual) headers['Authorization'] = `Bearer ${tokenActual}`;
+
       const res = await fetch(`${BASE_URL}/api/chatbot/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenActual}`,
-        },
+        headers,
         body: JSON.stringify({ mensaje, sessionId, usuarioId: usuarioIdActual }),
       });
       const data = await res.json();
       quitarTyping();
-      if (!res.ok) {
+      if (res.status === 401) {
+        agregarBurbuja('sistema', 'Acceso denegado — esta acción requiere autenticación');
+        logRequest('Visitante intentó', 'POST', '/api/chatbot/chat → 401 Unauthorized', true);
+      } else if (!res.ok) {
         agregarBurbuja('error', data.error || `Error ${res.status}`);
       } else {
         agregarBurbuja('bot', data.respuesta, {
@@ -630,10 +699,18 @@
     section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     try {
+      const catalogHeaders = {};
+      if (tokenActual) catalogHeaders['Authorization'] = `Bearer ${tokenActual}`;
+
       const res = await fetch(`${BASE_URL}/api/catalog/productos?usuarioId=${usuarioIdActual}`, {
-        headers: { 'Authorization': `Bearer ${tokenActual}` },
+        headers: catalogHeaders,
       });
       const data = await res.json();
+      if (res.status === 401) {
+        content.innerHTML = '<div class="catalog-empty">Acceso denegado — esta acción requiere autenticación</div>';
+        logRequest('Visitante intentó', 'GET', `/api/catalog/productos?usuarioId=${usuarioIdActual} → 401 Unauthorized`, true);
+        return;
+      }
       if (!res.ok) {
         content.innerHTML = `<div class="catalog-empty">${data.error || 'Error al cargar catálogo'}</div>`;
         return;
@@ -742,9 +819,48 @@
     win.scrollTop = win.scrollHeight;
   }
 
+  // ── Toggle de modo ────────────────────────────────────────────────────────
+
+  function toggleModo(modo) {
+    if (modo === modoActual) return;
+    modoActual = modo;
+
+    const btnEmp = document.getElementById('btn-modo-emp');
+    const btnCli = document.getElementById('btn-modo-cli');
+    btnEmp.className = 'toggle-opt' + (modo === 'emprendedor' ? ' active-emp' : '');
+    btnCli.className = 'toggle-opt' + (modo === 'cliente' ? ' active-cli' : '');
+
+    if (modo === 'cliente') {
+      tokenActual = null;
+      // Limpiar chat y log
+      document.getElementById('chat-window').innerHTML = '';
+      document.getElementById('log-entries').innerHTML = '';
+      totalLlamadas = 0;
+      document.getElementById('log-count').textContent = '0 llamadas';
+      // Actualizar badge si hay emprendedor seleccionado
+      if (usuarioIdActual) {
+        document.getElementById('auth-dot').className = 'auth-dot visitante';
+        document.getElementById('auth-label').className = 'auth-label visitante';
+        document.getElementById('auth-label').textContent = 'Visitante · sin sesión';
+        document.getElementById('auth-token-preview').textContent = '';
+        logRequest('Vista cliente', '—', 'sin token — modo visitante');
+      }
+    } else {
+      // Restaurar token del emprendedor seleccionado
+      if (usuarioIdActual) {
+        tokenActual = TOKENS[usuarioIdActual];
+        document.getElementById('auth-dot').className = 'auth-dot';
+        document.getElementById('auth-label').className = 'auth-label';
+        document.getElementById('auth-label').textContent = 'Emprendedor · sesión activa';
+        document.getElementById('auth-token-preview').textContent = 'Token: ' + tokenActual.slice(0, 25) + '...';
+        logRequest('Sesión restaurada', '—', 'token cargado (hardcoded demo)');
+      }
+    }
+  }
+
   // ── Request log ───────────────────────────────────────────────────────────
 
-  function logRequest(accion, metodo, ruta) {
+  function logRequest(accion, metodo, ruta, isError = false) {
     const entries = document.getElementById('log-entries');
     const MAX = 5;
 
@@ -756,7 +872,7 @@
     const time = now.toTimeString().slice(0, 8);
 
     const entry = document.createElement('div');
-    entry.className = 'log-entry new';
+    entry.className = 'log-entry new' + (isError ? ' error' : '');
     entry.innerHTML = `
       <span class="log-time">${time}</span>
       <span class="log-action">${esc(accion)}</span>
