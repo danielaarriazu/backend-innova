@@ -356,6 +356,125 @@
     .log-status-err { color: #f87171; font-weight: 700; flex-shrink: 0; }
     .log-status-sys { color: #475569; flex-shrink: 0; }
 
+    /* ── Dashboard del Emprendedor ── */
+    #panel-emprendedor { max-width: 1080px; width: 100%; margin: 20px auto 0; padding: 0 16px; }
+    .dashboard-wrap { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; min-height: 600px; background: var(--panel); }
+
+    /* Sidebar */
+    .dash-sidebar { width: 220px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+    .dash-logo { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border); }
+    .dash-logo-icon { background: #25d366; color: #fff; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .dash-logo-text { font-size: 14px; font-weight: 800; }
+    .dash-logo-sub  { font-size: 11px; color: var(--muted); }
+    .dash-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+    .dash-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--muted); cursor: pointer; transition: background .12s, color .12s; text-decoration: none; user-select: none; }
+    .dash-nav-item:hover { background: #f1f5f9; color: var(--text); }
+    .dash-nav-item.active { background: var(--emp-light); color: var(--emp); font-weight: 600; }
+    .dash-nav-section { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 10px 3px; margin-top: 4px; }
+    .dash-sidebar-note { margin: 8px; padding: 10px; background: var(--emp-light); border: 1px solid var(--emp-border); border-radius: 8px; font-size: 11px; }
+    .dsn-top  { font-weight: 700; color: var(--emp); margin-bottom: 4px; }
+    .dsn-text { color: #4b7c60; line-height: 1.5; }
+
+    /* Main */
+    .dash-main { flex: 1; min-width: 0; background: var(--bg); display: flex; flex-direction: column; }
+    .dash-topbar { padding: 14px 20px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .dash-page-title { font-size: 20px; font-weight: 800; }
+    .dash-page-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .dash-topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .dash-session-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; background: #dcfce7; color: var(--emp); padding: 4px 10px; border-radius: 20px; }
+    .dash-session-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emp); }
+    .dash-user-chip { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border: 1px solid var(--border); border-radius: 20px; background: var(--panel); }
+    .duc-avatar { width: 28px; height: 28px; background: var(--emp); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #fff; flex-shrink: 0; }
+    .duc-name  { font-weight: 600; font-size: 12px; }
+    .duc-email { font-size: 11px; color: var(--muted); }
+
+    /* Profile card */
+    .dash-profile-card { margin: 16px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+    .dpc-avatar { width: 64px; height: 64px; border-radius: 12px; background: var(--emp-light); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+    .dpc-info   { flex: 1; min-width: 160px; }
+    .dpc-name   { font-size: 18px; font-weight: 800; color: var(--emp); }
+    .dpc-role   { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; background: var(--emp); color: #fff; margin: 4px 0 8px; }
+    .dpc-rows   { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+    .dpc-row    { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+    .dpc-row strong { color: var(--text); font-weight: 600; }
+    .dpc-status-col { display: flex; flex-direction: column; gap: 2px; }
+    .dpc-status-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+    .dpc-status { display: flex; flex-direction: column; gap: 6px; }
+    .dps-item   { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .dps-dot    { width: 18px; height: 18px; border-radius: 50%; background: var(--emp); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 9px; color: #fff; }
+    .dpc-token  { font-family: 'Menlo','Consolas',monospace; font-size: 11px; color: var(--muted); }
+
+    /* Module cards */
+    .dash-modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; padding: 0 20px 16px; }
+    .dash-module-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .dm-header { display: flex; align-items: flex-start; gap: 10px; }
+    .dm-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .dm-icon-green  { background: #f0fdf4; }
+    .dm-icon-blue   { background: #eff6ff; }
+    .dm-icon-purple { background: #faf5ff; }
+    .dm-icon-orange { background: #fff7ed; }
+    .dm-title  { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .dm-entity { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+    .dm-entity-orange { background: #fff7ed; color: #ea580c; }
+    .dm-entity-blue   { background: #eff6ff; color: #2563eb; }
+    .dm-entity-purple { background: #faf5ff; color: #7c3aed; }
+    .dm-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .dm-list { font-size: 12px; color: var(--muted); padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
+    .dm-wip  { font-size: 11px; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
+    .dm-empty { text-align: center; padding: 14px 0; flex: 1; }
+    .dm-empty-icon { font-size: 28px; opacity: .25; margin-bottom: 6px; }
+    .dm-empty-msg  { font-size: 13px; font-weight: 600; }
+    .dm-empty-sub  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .dm-stat-list  { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .dm-stat-row   { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .dm-stat-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dm-stat-row > span:nth-child(2) { flex: 1; color: var(--muted); }
+    .dm-stat-val   { font-weight: 700; }
+    .dm-btn { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; transition: background .15s, color .15s; border: 1.5px solid; }
+    .dm-btn-green:hover  { background: var(--emp);  color: #fff; } .dm-btn-green  { border-color: var(--emp);  color: var(--emp); }
+    .dm-btn-blue:hover   { background: var(--cli);  color: #fff; } .dm-btn-blue   { border-color: var(--cli);  color: var(--cli); }
+    .dm-btn-purple:hover { background: #7c3aed; color: #fff; } .dm-btn-purple { border-color: #7c3aed; color: #7c3aed; }
+    .dm-btn-orange:hover { background: #ea580c; color: #fff; } .dm-btn-orange { border-color: #ea580c; color: #ea580c; }
+
+    /* Bottom: resumen + integraciones */
+    .dash-bottom { display: grid; grid-template-columns: 1fr 260px; gap: 14px; padding: 0 20px 16px; align-items: start; }
+    @media (max-width: 800px) { .dash-bottom { grid-template-columns: 1fr; } }
+    .dash-resumen { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .dr-header { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .dr-sim-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; background: #f1f5f9; color: var(--muted); border-radius: 20px; }
+    .dr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 700px) { .dr-stats { grid-template-columns: repeat(2, 1fr); } }
+    .dr-stat { text-align: center; padding: 12px 6px; border: 1px solid var(--border); border-radius: 8px; }
+    .dr-stat-icon  { font-size: 20px; margin-bottom: 4px; }
+    .dr-stat-num   { font-size: 22px; font-weight: 800; }
+    .dr-stat-orange { color: #ea580c; }
+    .dr-stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .dash-integrations { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .di-header { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+    .di-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+    .di-item:first-of-type { border-top: none; padding-top: 0; }
+    .di-icon { font-size: 20px; flex-shrink: 0; }
+    .di-info { flex: 1; }
+    .di-name { font-size: 13px; font-weight: 600; }
+    .di-sub  { font-size: 11px; color: var(--muted); }
+    .di-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+    .di-badge.ok      { background: #dcfce7; color: var(--emp); }
+    .di-badge.pending { background: #fef9c3; color: #a16207; }
+
+    /* Footer info */
+    .dash-footer-info { display: grid; grid-template-columns: 1fr 220px; gap: 14px; padding: 0 20px 20px; align-items: start; }
+    @media (max-width: 700px) { .dash-footer-info { grid-template-columns: 1fr; } }
+    .dfi-left, .dfi-right { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .dfi-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+    .dfi-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
+    @media (max-width: 600px) { .dfi-grid { grid-template-columns: 1fr; } }
+    .dfi-grid > div { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .dfi-grid > div strong { color: var(--text); }
+    .dfi-ep-list { display: flex; flex-direction: column; gap: 5px; }
+    .dfi-ep { font-family: 'Menlo','Consolas',monospace; font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+    .dfi-m  { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .dfi-m.get { background: #dcfce7; color: #15803d; }
+
     /* Toast */
     #error-toast {
       display: none; position: fixed; bottom: 20px; right: 20px;
@@ -450,7 +569,7 @@
     <button class="btn-back" onclick="volverInicio()">&#8592; Volver al inicio</button>
   </div>
 
-  <div class="app-layout">
+  <div class="app-layout" id="app-layout">
 
     <!-- Selector de negocio -->
     <div class="selector-panel">
@@ -478,32 +597,207 @@
       <button class="btn-ingresar" id="btn-ingresar" disabled onclick="ingresarAlChat()"></button>
     </div>
 
-    <!-- Chat -->
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <div class="chat-panel">
-        <div class="cp-header" id="cp-header">
-          <div>
-            <div class="cp-title" id="cp-title"></div>
-            <div class="cp-meta"  id="cp-meta"></div>
+    <!-- Chat area -->
+    <div id="chat-area" style="display:flex;flex-direction:column;gap:12px;">
+        <div class="chat-panel">
+          <div class="cp-header" id="cp-header">
+            <div>
+              <div class="cp-title" id="cp-title"></div>
+              <div class="cp-meta"  id="cp-meta"></div>
+            </div>
+            <span class="cp-badge" id="cp-badge"></span>
           </div>
-          <span class="cp-badge" id="cp-badge"></span>
+          <div class="chat-window" id="chat-window"></div>
+          <div class="quick-actions" id="quick-actions"></div>
+          <div class="chat-input-area">
+            <input id="msg-input" type="text" placeholder="Seleccioná un negocio para comenzar..."
+              onkeydown="if(event.key==='Enter')enviarMensaje()" disabled />
+            <button class="btn-send" id="btn-send" onclick="enviarMensaje()" disabled>Enviar</button>
+          </div>
+          <div class="chat-footer-note" id="chat-footer-note"></div>
         </div>
-        <div class="chat-window" id="chat-window"></div>
-        <div class="quick-actions" id="quick-actions"></div>
-        <div class="chat-input-area">
-          <input id="msg-input" type="text" placeholder="Seleccioná un negocio para comenzar..."
-            onkeydown="if(event.key==='Enter')enviarMensaje()" disabled />
-          <button class="btn-send" id="btn-send" onclick="enviarMensaje()" disabled>Enviar</button>
+
+        <div class="catalog-section" id="catalog-section">
+          <div class="catalog-section-header" id="catalog-title">Catálogo</div>
+          <div id="catalog-content"></div>
         </div>
-        <div class="chat-footer-note" id="chat-footer-note"></div>
       </div>
 
-      <div class="catalog-section" id="catalog-section">
-        <div class="catalog-section-header" id="catalog-title">Catálogo</div>
-        <div id="catalog-content"></div>
-      </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL DEL EMPRENDEDOR — Dashboard
+  ══════════════════════════════════════════ -->
+  <div id="panel-emprendedor" class="hidden">
+    <div class="dashboard-wrap">
+
+      <!-- Sidebar -->
+      <aside class="dash-sidebar">
+        <div class="dash-logo">
+          <div class="dash-logo-icon">&#128172;</div>
+          <div>
+            <div class="dash-logo-text">InnovaLab</div>
+            <div class="dash-logo-sub">Chatbot Comercial</div>
+          </div>
+        </div>
+
+        <nav class="dash-nav">
+          <a class="dash-nav-item active">&#127968; Inicio</a>
+          <a class="dash-nav-item" onclick="irAlChat()">&#128172; Chat en vivo</a>
+          <div class="dash-nav-section">Configuración</div>
+          <a class="dash-nav-item">&#129302; Configuración del Bot</a>
+          <a class="dash-nav-item">&#128230; Productos</a>
+          <a class="dash-nav-item">&#10067; FAQs</a>
+          <div class="dash-nav-section">Gestión</div>
+          <a class="dash-nav-item">&#128172; Consultas</a>
+          <a class="dash-nav-item">&#128100; Leads</a>
+          <div class="dash-nav-section">Métricas</div>
+          <a class="dash-nav-item">&#128202; Resumen</a>
+          <div class="dash-nav-section">Sistema</div>
+          <a class="dash-nav-item">&#128100; Mi perfil</a>
+          <a class="dash-nav-item" onclick="volverInicio()">&#128682; Cerrar sesión</a>
+        </nav>
+
+        <div class="dash-sidebar-note">
+          <div class="dsn-top">&#128161; Panel de prueba</div>
+          <div class="dsn-text">Algunas funciones están en construcción. La integración con la base de datos real se habilitará próximamente.</div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="dash-main">
+
+        <!-- Top bar -->
+        <div class="dash-topbar">
+          <div>
+            <div class="dash-page-title">Panel del Emprendedor</div>
+            <div class="dash-page-sub">Gestiona tu chatbot y tu negocio desde un solo lugar.</div>
+          </div>
+          <div class="dash-topbar-right">
+            <div class="dash-session-badge"><span class="dash-session-dot"></span>Sesión activa</div>
+            <div id="dash-user-chip" class="dash-user-chip"></div>
+          </div>
+        </div>
+
+        <!-- Profile card (llenado por JS) -->
+        <div id="dash-profile-card" class="dash-profile-card"></div>
+
+        <!-- Módulos por entidad -->
+        <div class="dash-modules">
+
+          <div class="dash-module-card">
+            <div class="dm-header">
+              <div class="dm-icon dm-icon-green">&#129302;</div>
+              <div><div class="dm-title">Configuración del Bot</div><span class="dm-entity dm-entity-orange">Entidad: CONFIGURACION_BOT</span></div>
+            </div>
+            <div class="dm-desc">Personaliza cómo se comunica tu chatbot con tus clientes.</div>
+            <ul class="dm-list">
+              <li>Mensaje de bienvenida</li><li>Horario de atención</li><li>Tono y estilo</li><li>Menú inicial</li>
+            </ul>
+            <div class="dm-wip">&#128296; En construcción &mdash; La integración con la base de datos estará disponible próximamente.</div>
+            <button class="dm-btn dm-btn-green">Configurar</button>
+          </div>
+
+          <div class="dash-module-card">
+            <div class="dm-header">
+              <div class="dm-icon dm-icon-blue">&#128230;</div>
+              <div><div class="dm-title">Productos</div><span class="dm-entity dm-entity-blue">Entidad: PRODUCTO</span></div>
+            </div>
+            <div class="dm-desc">Gestiona los productos o servicios que ofreces a tus clientes.</div>
+            <div class="dm-empty">
+              <div class="dm-empty-icon">&#128230;</div>
+              <div class="dm-empty-msg">Aún no hay productos cargados</div>
+              <div class="dm-empty-sub">Podrás agregar y administrar tus productos aquí.</div>
+            </div>
+            <button class="dm-btn dm-btn-blue">Ver productos</button>
+          </div>
+
+          <div class="dash-module-card">
+            <div class="dm-header">
+              <div class="dm-icon dm-icon-purple">&#10067;</div>
+              <div><div class="dm-title">Preguntas Frecuentes (FAQs)</div><span class="dm-entity dm-entity-purple">Entidad: FAQ</span></div>
+            </div>
+            <div class="dm-desc">Crea y administra las preguntas frecuentes de tus clientes.</div>
+            <div class="dm-empty">
+              <div class="dm-empty-icon">&#10067;</div>
+              <div class="dm-empty-msg">Aún no hay FAQs creadas</div>
+              <div class="dm-empty-sub">Podrás agregar preguntas y respuestas para que tu bot las use.</div>
+            </div>
+            <button class="dm-btn dm-btn-purple">Ver FAQs</button>
+          </div>
+
+          <div class="dash-module-card">
+            <div class="dm-header">
+              <div class="dm-icon dm-icon-orange">&#128172;</div>
+              <div><div class="dm-title">Consultas Recibidas</div><span class="dm-entity dm-entity-orange">Entidad: CONSULTA</span></div>
+            </div>
+            <div class="dm-desc">Revisa las consultas que tus clientes han realizado al chatbot.</div>
+            <div class="dm-stat-list">
+              <div class="dm-stat-row"><span class="dm-stat-dot" style="background:#3b82f6"></span><span>Nuevas</span><span class="dm-stat-val">0</span></div>
+              <div class="dm-stat-row"><span class="dm-stat-dot" style="background:#8b5cf6"></span><span>En proceso</span><span class="dm-stat-val">0</span></div>
+              <div class="dm-stat-row"><span class="dm-stat-dot" style="background:#16a34a"></span><span>Respondidas</span><span class="dm-stat-val">0</span></div>
+              <div class="dm-stat-row"><span class="dm-stat-dot" style="background:#f59e0b"></span><span>Derivadas</span><span class="dm-stat-val">0</span></div>
+              <div class="dm-stat-row"><span class="dm-stat-dot" style="background:#ef4444"></span><span>Cerradas</span><span class="dm-stat-val">0</span></div>
+            </div>
+            <button class="dm-btn dm-btn-orange">Ver consultas</button>
+          </div>
+
+        </div>
+
+        <!-- Resumen + Integraciones -->
+        <div class="dash-bottom">
+
+          <div class="dash-resumen">
+            <div class="dr-header">Resumen General <span class="dr-sim-badge">datos simulados</span></div>
+            <div class="dr-stats">
+              <div class="dr-stat"><div class="dr-stat-icon" style="color:#16a34a;">&#128172;</div><div class="dr-stat-num">0</div><div class="dr-stat-label">Consultas totales<br>Este mes</div></div>
+              <div class="dr-stat"><div class="dr-stat-icon" style="color:#2563eb;">&#128100;</div><div class="dr-stat-num">0</div><div class="dr-stat-label">Leads capturados<br>Este mes</div></div>
+              <div class="dr-stat"><div class="dr-stat-icon" style="color:#7c3aed;">&#128722;</div><div class="dr-stat-num">0</div><div class="dr-stat-label">Productos activos</div></div>
+              <div class="dr-stat"><div class="dr-stat-icon" style="color:#ea580c;">&#129302;</div><div class="dr-stat-num dr-stat-orange">100%</div><div class="dr-stat-label">Disponibilidad del bot<br>(Simulado)</div></div>
+            </div>
+          </div>
+
+          <div class="dash-integrations">
+            <div class="di-header">Integraciones</div>
+            <div class="di-item">
+              <div class="di-icon">&#128241;</div>
+              <div class="di-info"><div class="di-name">WhatsApp (Mock)</div><div class="di-sub">Simulación activa de mensajes entrantes</div></div>
+              <span class="di-badge ok">Conectado</span>
+            </div>
+            <div class="di-item">
+              <div class="di-icon">&#127760;</div>
+              <div class="di-info"><div class="di-name">Sitio Web</div><div class="di-sub">Integración con tu sitio (próximamente)</div></div>
+              <span class="di-badge pending">Pendiente</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer info -->
+        <div class="dash-footer-info">
+          <div class="dfi-left">
+            <div class="dfi-title">&#128712; ¿Qué es cada sección?</div>
+            <div class="dfi-grid">
+              <div><strong>Configuración del Bot:</strong> Personaliza el comportamiento y mensajes de tu chatbot.</div>
+              <div><strong>Consultas:</strong> Visualiza y gestiona las conversaciones con tus clientes.</div>
+              <div><strong>Productos:</strong> Administra tu catálogo para que el bot pueda mostrarlo.</div>
+              <div><strong>Leads:</strong> Revisa los datos de contacto capturados por el chatbot.</div>
+              <div><strong>FAQs:</strong> Crea respuestas automáticas para las preguntas más frecuentes.</div>
+            </div>
+          </div>
+          <div class="dfi-right">
+            <div class="dfi-title">&#128279; Endpoints relacionados</div>
+            <div class="dfi-ep-list">
+              <div class="dfi-ep"><span class="dfi-m get">GET</span>/api/catalog/productos</div>
+              <div class="dfi-ep"><span class="dfi-m get">GET</span>/api/consultations</div>
+              <div class="dfi-ep"><span class="dfi-m get">GET</span>/api/faqs</div>
+              <div class="dfi-ep"><span class="dfi-m get">GET</span>/api/configuracion-bot</div>
+            </div>
+          </div>
+        </div>
+
+      </main>
     </div>
-
   </div>
 
   <div class="request-log-wrap">
@@ -579,6 +873,9 @@
     document.getElementById('chat-window').innerHTML = '';
     document.getElementById('catalog-section').classList.remove('visible');
     document.getElementById('quick-actions').innerHTML = '';
+    document.getElementById('panel-emprendedor').classList.add('hidden');
+    document.getElementById('chat-area').classList.remove('hidden');
+    document.getElementById('app-layout').classList.remove('hidden');
     document.querySelectorAll('.negocio-item').forEach(el => el.className = 'negocio-item');
 
     // Mode banner
@@ -690,15 +987,78 @@
       qa.appendChild(chip);
     });
 
-    // Log sesión
     logRequest('—', isEmp ? 'Sesión JWT cargada' : 'Vista como visitante', null);
 
-    // Saludo del bot
+    if (isEmp) {
+      mostrarPanelEmprendedor(emp);
+      return;
+    }
+
+    // Cliente: mostrar chat
+    document.getElementById('panel-emprendedor').classList.add('hidden');
+    document.getElementById('chat-area').classList.remove('hidden');
+
     setTimeout(() => {
       agregarBurbuja('bot', `¡Hola! Soy el asistente virtual de ${emp.nombre}. ¿En qué puedo ayudarte hoy?`);
     }, 200);
 
     inp.focus();
+  }
+
+  // ── Panel Emprendedor ─────────────────────────────────────────────────────
+
+  function mostrarPanelEmprendedor(emp) {
+    const ahora = new Date().toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const iniciales = emp.nombre.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const tokenCorto = tokenActual ? tokenActual.substring(0, 22) + '...' : '';
+
+    // Top bar: chip de usuario
+    document.getElementById('dash-user-chip').innerHTML = `
+      <div class="duc-avatar">${esc(iniciales)}</div>
+      <div><div class="duc-name">${esc(emp.nombre)}</div><div class="duc-email">${esc(emp.email)}</div></div>
+    `;
+
+    // Tarjeta de perfil
+    document.getElementById('dash-profile-card').innerHTML = `
+      <div class="dpc-avatar">&#127978;</div>
+      <div class="dpc-info">
+        <div class="dpc-name">${esc(emp.nombre)}</div>
+        <span class="dpc-role">Emprendedor</span>
+        <div class="dpc-rows">
+          <div class="dpc-row">&#9993; <strong>${esc(emp.email)}</strong></div>
+          <div class="dpc-row">&#128100; Usuario ID: <strong>${usuarioIdActual}</strong></div>
+          <div class="dpc-row">&#128197; Última sesión: <strong>${ahora}</strong></div>
+        </div>
+      </div>
+      <div class="dpc-status-col">
+        <div class="dpc-status-title">Estado de la cuenta</div>
+        <div class="dpc-status">
+          <div class="dps-item"><div class="dps-dot">&#10003;</div><span>Sesión activa con JWT</span></div>
+          <div class="dps-item"><div class="dps-dot">&#10003;</div><span>Acceso: Emprendedor</span></div>
+          <div class="dps-item"><div class="dps-dot">&#10003;</div><span>Token: <span class="dpc-token">${esc(tokenCorto)}</span></span></div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('app-layout').classList.add('hidden');
+    document.getElementById('mode-banner').classList.add('hidden');
+    document.getElementById('panel-emprendedor').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function irAlChat() {
+    const emp = EMPRENDEDORES[usuarioIdActual];
+    document.getElementById('panel-emprendedor').classList.add('hidden');
+    document.getElementById('app-layout').classList.remove('hidden');
+    document.getElementById('mode-banner').classList.remove('hidden');
+
+    const win = document.getElementById('chat-window');
+    if (!win.children.length) {
+      setTimeout(() => {
+        agregarBurbuja('bot', `¡Hola! Soy el asistente virtual de ${emp.nombre}. ¿En qué puedo ayudarte hoy?`);
+      }, 200);
+    }
+    document.getElementById('msg-input').focus();
   }
 
   // ── Chat ──────────────────────────────────────────────────────────────────
