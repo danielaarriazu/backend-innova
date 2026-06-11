@@ -960,7 +960,7 @@
               <div class="vp-icon dm-icon-orange">&#128172;</div>
               <div>
                 <div class="vp-title">Consultas <span class="dm-entity dm-entity-orange">CONSULTA</span></div>
-                <div class="ep-row" style="margin-top:4px;"><span class="ep-tag ep-pend">sin endpoint · GET /api/consultations</span></div>
+                <div class="ep-row" style="margin-top:4px;"><span class="ep-tag ep-avail">POST /api/consultations</span><span class="ep-tag ep-pend">GET /api/consultations · requiere JWT+DB</span></div>
                 <div class="vp-sub" style="margin-top:4px;">Registro de conversaciones realizadas por tus clientes al chatbot.</div>
               </div>
             </div>
@@ -1239,6 +1239,7 @@
   let modoActual      = null;
   let usuarioIdActual = null;
   let sessionId       = null;
+  let consultaId      = null;
   let tokenActual     = null;
   let cargandoChat    = false;
   let totalLlamadas   = 0;
@@ -1307,7 +1308,7 @@
   function volverInicio() {
     document.getElementById('screen-app').classList.add('hidden');
     document.getElementById('screen-welcome').classList.remove('hidden');
-    modoActual = null; usuarioIdActual = null; tokenActual = null;
+    modoActual = null; usuarioIdActual = null; tokenActual = null; consultaId = null;
   }
 
   // ── Selección de negocio ──────────────────────────────────────────────────
@@ -1378,13 +1379,26 @@
       return;
     }
 
-    // Cliente: mostrar chat
+    // Cliente: mostrar chat e iniciar consulta real en el backend
     document.getElementById('panel-emprendedor').classList.add('hidden');
     document.getElementById('chat-area').classList.remove('hidden');
 
-    setTimeout(() => {
-      agregarBurbuja('bot', `¡Hola! Soy el asistente virtual de ${emp.nombre}. ¿En qué puedo ayudarte hoy?`);
-    }, 200);
+    fetch(`${BASE_URL}/api/consultations?usuarioId=${usuarioIdActual}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ canal: 'web', tipoConsulta: 'chatbot' }),
+    })
+      .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
+      .then(({ ok, status, data }) => {
+        logRequest('POST', `/api/consultations?usuarioId=${usuarioIdActual}`, ok ? 201 : status);
+        consultaId = data.id ?? null;
+        const saludo = data.mensajeBienvenida ?? `¡Hola! Soy el asistente virtual de ${emp.nombre}. ¿En qué puedo ayudarte hoy?`;
+        agregarBurbuja('bot', saludo);
+      })
+      .catch(() => {
+        logRequest('POST', `/api/consultations?usuarioId=${usuarioIdActual}`, 0);
+        agregarBurbuja('bot', `¡Hola! Soy el asistente virtual de ${emp.nombre}. ¿En qué puedo ayudarte hoy?`);
+      });
 
     inp.focus();
   }
