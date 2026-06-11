@@ -299,11 +299,26 @@
       padding: 16px; display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;
     }
-    .product-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 13px; }
+    .product-card {
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 13px;
+      cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    }
+    .product-card:hover { border-color: var(--cli); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cli) 15%, transparent); }
     .p-name  { font-weight: 700; margin-bottom: 3px; }
     .p-desc  { color: var(--muted); font-size: 11px; margin-bottom: 6px; min-height: 26px; }
     .p-price { font-size: 15px; font-weight: 800; color: var(--cli); }
     .p-stock { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .product-detail { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .pd-img   { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 4px; }
+    .pd-nombre { font-size: 16px; font-weight: 800; }
+    .pd-desc   { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .pd-precio { font-size: 22px; font-weight: 900; color: var(--cli); }
+    .pd-stock  { font-size: 12px; color: var(--muted); }
+    .pd-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .pd-btn { padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--cli); background: transparent; color: var(--cli); transition: background .15s, color .15s; }
+    .pd-btn:hover { background: var(--cli); color: #fff; }
+    .pd-btn.primary { background: var(--cli); color: #fff; }
+    .pd-btn.primary:hover { opacity: .85; }
 
     /* ── Request log ── */
     .request-log-wrap {
@@ -514,9 +529,33 @@
   };
 
   const EMPRENDEDORES = {
-    1: { nombre: 'Panadería García',      email: 'garcia@demo.com', chips: ['Ver catálogo', 'Preguntas frecuentes', 'Hablar con una persona', 'hacen envíos?', 'cómo pago'] },
-    2: { nombre: 'Ferretería López',      email: 'lopez@demo.com',  chips: ['Ver catálogo', 'Preguntas frecuentes', 'Hablar con una persona', 'tienen garantía?', 'hacen entregas?'] },
-    3: { nombre: 'Ropa & Accesorios Mía', email: 'mia@demo.com',    chips: ['Ver catálogo', 'Preguntas frecuentes', 'Hablar con una persona', 'horarios', 'precio'] },
+    1: {
+      nombre: 'Panadería García', email: 'garcia@demo.com',
+      chips: ['Ver catálogo', 'Preguntas frecuentes', 'Hablar con una persona', 'hacen envíos?', 'cómo pago'],
+      faqOpciones: [
+        { label: 'Cómo hacer un pedido', msg: 'cómo hacer un pedido' },
+        { label: 'Hacen envíos?',        msg: 'hacen envíos' },
+        { label: 'Medios de pago',       msg: 'cómo pago' },
+      ],
+    },
+    2: {
+      nombre: 'Ferretería López', email: 'lopez@demo.com',
+      chips: ['Ver catálogo', 'Preguntas frecuentes', 'Hablar con una persona', 'tienen garantía?', 'hacen entregas?'],
+      faqOpciones: [
+        { label: 'Garantías',              msg: 'tienen garantía' },
+        { label: 'Entregas a domicilio',   msg: 'hacen entregas' },
+        { label: 'Cambios y devoluciones', msg: 'devoluciones' },
+      ],
+    },
+    3: {
+      nombre: 'Ropa & Accesorios Mía', email: 'mia@demo.com',
+      chips: ['Ver catálogo', 'Preguntas frecuentes', 'Hablar con una persona', 'horarios', 'precio'],
+      faqOpciones: [
+        { label: 'Talles disponibles', msg: 'talles' },
+        { label: 'Horarios',           msg: 'horarios' },
+        { label: 'Precios',            msg: 'precio' },
+      ],
+    },
   };
 
   let modoActual      = null;
@@ -643,7 +682,8 @@
       chip.className = 'quick-chip';
       chip.textContent = s;
       chip.onclick = () => {
-        if (s === 'Ver catálogo') { verCatalogo(); return; }
+        if (s === 'Ver catálogo')         { verCatalogo(); return; }
+        if (s === 'Preguntas frecuentes') { mostrarFAQ();  return; }
         document.getElementById('msg-input').value = s;
         enviarMensaje();
       };
@@ -750,6 +790,7 @@
           <div class="p-price">${p.precio != null ? '$' + Number(p.precio).toLocaleString('es-AR') : 'Sin precio'}</div>
           ${p.stock != null ? `<div class="p-stock">Stock: ${p.stock}</div>` : ''}
         `;
+        card.onclick = () => verProductoDetalle(p.id);
         grid.appendChild(card);
       });
       content.innerHTML = '';
@@ -758,6 +799,92 @@
       content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">No se pudo conectar.</div>';
       logRequest('GET', `/api/catalog/productos?usuarioId=${usuarioIdActual}`, 0);
     }
+  }
+
+  async function verProductoDetalle(id) {
+    const content = document.getElementById('catalog-content');
+    content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">Cargando...</div>';
+
+    const h = {};
+    if (tokenActual) h['Authorization'] = `Bearer ${tokenActual}`;
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/catalog/productos/${id}?usuarioId=${usuarioIdActual}`, { headers: h });
+      const p   = await res.json();
+      logRequest('GET', `/api/catalog/productos/${id}`, res.status);
+
+      if (!res.ok) {
+        content.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);">${esc(p.error || 'Error al cargar')}</div>`;
+        return;
+      }
+
+      const detail = document.createElement('div');
+      detail.className = 'product-detail';
+      detail.innerHTML = `
+        ${p.imagen ? `<img src="${esc(p.imagen)}" alt="${esc(p.nombre)}" class="pd-img">` : ''}
+        <div class="pd-nombre">${esc(p.nombre)}</div>
+        <div class="pd-desc">${esc(p.descripcion || '')}</div>
+        <div class="pd-precio">${p.precio != null ? '$' + Number(p.precio).toLocaleString('es-AR') : 'Sin precio'}</div>
+        ${p.stock != null ? `<div class="pd-stock">Stock disponible: ${p.stock}</div>` : ''}
+        <div class="pd-actions">
+          <button class="pd-btn primary" onclick="verCatalogo()">Ver otros productos</button>
+          <button class="pd-btn" onclick="cerrarCatalogo()">Volver al chat</button>
+        </div>
+      `;
+      content.innerHTML = '';
+      content.appendChild(detail);
+    } catch (e) {
+      content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">No se pudo conectar.</div>';
+      logRequest('GET', `/api/catalog/productos/${id}`, 0);
+    }
+  }
+
+  function cerrarCatalogo() {
+    document.getElementById('catalog-section').classList.remove('visible');
+  }
+
+  function mostrarFAQ() {
+    const emp = EMPRENDEDORES[usuarioIdActual];
+    agregarBurbuja('bot', 'Elige la opción que más se acerque a tu consulta:');
+
+    const qa = document.getElementById('quick-actions');
+    qa.innerHTML = '';
+
+    emp.faqOpciones.forEach(op => {
+      const chip = document.createElement('button');
+      chip.className = 'quick-chip';
+      chip.textContent = op.label;
+      chip.onclick = () => {
+        document.getElementById('msg-input').value = op.msg;
+        restaurarChips();
+        enviarMensaje();
+      };
+      qa.appendChild(chip);
+    });
+
+    const volver = document.createElement('button');
+    volver.className = 'quick-chip';
+    volver.textContent = '← Volver';
+    volver.onclick = () => restaurarChips();
+    qa.appendChild(volver);
+  }
+
+  function restaurarChips() {
+    const emp = EMPRENDEDORES[usuarioIdActual];
+    const qa  = document.getElementById('quick-actions');
+    qa.innerHTML = '';
+    emp.chips.forEach(s => {
+      const chip = document.createElement('button');
+      chip.className = 'quick-chip';
+      chip.textContent = s;
+      chip.onclick = () => {
+        if (s === 'Ver catálogo')         { verCatalogo(); return; }
+        if (s === 'Preguntas frecuentes') { mostrarFAQ();  return; }
+        document.getElementById('msg-input').value = s;
+        enviarMensaje();
+      };
+      qa.appendChild(chip);
+    });
   }
 
   // ── Burbujas ──────────────────────────────────────────────────────────────

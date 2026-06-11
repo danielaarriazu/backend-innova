@@ -1,3 +1,4 @@
+/** src/modules/whatsapp/whatsapp.controller.ts */
 import { Request, Response } from 'express';
 import { initWhatsAppSession, sendMessage, getSessionStatus, simulateIncoming } from './whatsapp.mock';
 
