@@ -1,0 +1,137 @@
+openapi: 3.0.0
+info:
+  title: API de Autenticación - InnovaLab Chatbot
+  description: >
+    Especificación de los endpoints de registro y login. 
+    Arquitectura con inicialización de Bot integrada y registro de última sesión.
+  version: 1.0.0
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Registro de un nuevo Emprendedor
+      description: >
+        Registra un usuario con el rol (EMPRENDEDOR), ejecuta validaciones estrictas de formato antes de crear su fila en ConfiguracionBot mediante una transacción ACID.
+      tags:
+        - Autenticación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nombre
+                - email
+                - password
+              properties:
+                nombre:
+                  type: string
+                  minLength: 1
+                  example: "Daniela Innova"
+                  description: Nombre completo del emprendedor. No puede estar vacío ni contener solo espacios.
+                email:
+                  type: string
+                  format: email
+                  pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$'
+                  example: "daniela@innovalab.com"
+                  description: Correo electrónico único y con formato válido.
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  pattern: '^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.\-_#])[A-Za-z\d@$!%*?&.\-_#]{8,}$'
+                  example: "PasswordSegura2026!"
+                  description: >
+                    Contraseña de acceso. Requisitos obligatorios: Mínimo 8 caracteres de longitud, 
+                    debe contener al menos una letra, al menos un número y al menos un carácter especial 
+                    permitido (@, $, !, %, *, ?, &, ., -, _, #).
+      responses:
+        '201':
+          description: Usuario y Configuración de Bot creados con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Emprendedor registrado con éxito junto a su configuración de bot"
+                  usuarioId:
+                    type: string
+                    format: uuid
+                    example: "4fbc752d-9321-4f11-8e99-fa20d2d88851"
+        '400':
+          description: Error de validación en los datos enviados o email duplicado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    oneOf:
+                      - example: "El nombre es obligatorio y no puede estar vacío"
+                      - example: "El formato del correo electrónico no es válido"
+                      - example: "La contraseña debe tener al menos 8 caracteres, e incluir letras, números y al menos un carácter especial..."
+                      - example: "El email ya está registrado"
+        '500':
+          description: Error interno.
+
+  /api/auth/login:
+    post:
+      summary: Inicio de sesión de Emprendedor
+      description: Validar credenciales, guarda última sesión y genera JWT por 24 horas.
+      tags:
+        - Autenticación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "daniela@innovalab.com"
+                password:
+                  type: string
+                  format: password
+                  example: "PasswordSegura2026!"
+      responses:
+        '200':
+          description: Éxito. Token válido por 24h.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "4fbc752d-9321-4f11-8e99-fa20d2d88851"
+                      nombre:
+                        type: string
+                        example: "Daniela Innova"
+                      email:
+                        type: string
+                        example: "daniela@innovalab.com"
+        '401':
+          description: Credenciales inválidas.
+        '500':
+          description: Error interno.
