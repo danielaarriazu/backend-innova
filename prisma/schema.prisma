@@ -19,22 +19,11 @@ model Usuario {
   password     String
   rol          Rol               @default(EMPRENDEDOR)
   estado       EstadoUsuario     @default(ACTIVO)
-  fechaRegistro DateTime          @default(now())
-  ultimaSesion DateTime?         
+  fecha_registro     DateTime            @default(now())
+  ultima_sesion      DateTime?         
   bot          ConfiguracionBot? // Relación 1 a 1 con la configuración del bot
-  historialSesiones HistorialSesion[] 
+  historial_sesiones HistorialSesion[] 
   actividades      RegistroActividad[]
-}
-
-model ConfiguracionBot {
-  id               String   @id @default(uuid())
-  usuario_id       String   @unique
-  usuario          Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
-  activo           Boolean  @default(false)
-  nombreNegocio    String?
-  mensajeBienvenida String?  @db.Text
-  tokenWhatsapp    String?
-  fechaModificacion DateTime @updatedAt
 }
 
 model HistorialSesion {
@@ -46,15 +35,108 @@ model HistorialSesion {
   ip           String?
 }
 
+model ConfiguracionBot {
+  id                    String         @id @default(uuid())
+  usuario_id            String         @unique
+  usuario               Usuario        @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  
+  // Estado y Datos del Negocio
+  activo                Boolean        @default(false) // Interruptor general del bot
+  nombre_negocio        String?
+  logo_url              String?        // URL de la imagen
+  
+  // Comportamiento del Bot
+  mensaje_bienvenida    String?        @db.Text
+  mensaje_fuera_horario String?        @db.Text
+  derivacion_automatica Boolean        @default(false) // Si es true, avisa al dueño
+  
+  // historialSesiones
+  fecha_creacion        DateTime       @default(now())
+  fecha_actualizacion   DateTime       @updatedAt
+
+  // Relaciones (Todo lo que le pertenece a este bot)
+  categoriasFAQ         CategoriaFAQ[]
+  faqs                  Faq[]
+  productos             Producto[]
+  sesiones              SesionChat[]
+}
+
+model CategoriaFAQ {
+  id              String           @id @default(uuid())
+  bot_id          String
+  bot             ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  nombre          String           // Ej: "Envíos y entregas", "Medios de Pago", "Cambios y devoluciones"
+  
+  faqs            Faq[]            // Relación: Una categoría tiene muchas FAQs
+  
+  fecha_creacion  DateTime         @default(now())
+}
+
+model Faq {
+  id                  String           @id @default(uuid())
+  bot_id              String
+  bot                 ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  
+  categoria_id        String
+  categoria           CategoriaFAQ     @relation(fields: [categoria_id], references: [id], onDelete: Restrict)
+  
+  pregunta            String
+  respuesta           String           @db.Text
+  keywords            String?          // Palabras clave separadas por comas
+  
+  fecha_creacion      DateTime         @default(now())
+  fecha_modificacion  DateTime         @updatedAt
+}
+
+model Producto {
+  id                  String           @id @default(uuid())
+  bot_id              String
+  bot                 ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  
+  nombre              String
+  descripcion         String?          @db.Text
+  precio              Decimal          @db.Decimal(10, 2)
+  stock               Int              @default(0)
+  url_imagen          String?
+  activo              Boolean          @default(true) // Para pausar ventas sin borrar el ítem
+  
+  fecha_creacion      DateTime         @default(now())
+  fecha_actualizacion DateTime         @updatedAt
+}
+
+model SesionChat {
+  id                  String           @id @default(uuid())
+  bot_id              String
+  bot                 ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  
+  numero_cliente      String           // El celular del comprador (Ej: "5491123456789")
+  estado              EstadoChat       @default(BOT_ACTIVO)
+  
+  fecha_creacion      DateTime         @default(now())
+  fecha_actualizacion DateTime         @updatedAt
+
+  // Regla de integridad: Un cliente no puede tener dos estados distintos en el mismo bot
+  @@unique([bot_id, numero_cliente]) 
+}
+
+
+// Distintos roles que se maneja actualmente
 enum Rol {
   ADMIN
   EMPRENDEDOR
 }
 
+// Estados para el emprendedor
 enum EstadoUsuario {
   ACTIVO
   SUSPENDIDO
   ELIMINADO
+}
+
+// Estados para el control de la atención
+enum EstadoChat {
+  BOT_ACTIVO
+  HUMANO_ATENDIENDO
 }
 
 model RegistroActividad {

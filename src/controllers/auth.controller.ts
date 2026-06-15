@@ -90,7 +90,7 @@ export const login = async (req: Request, res: Response) => {
     // Guardamos la actualización de última sesión solo al ingresar credenciales
     await prisma.usuario.update({
       where: { id: usuario.id },
-      data: { ultimaSesion: new Date() }
+      data: { ultima_sesion: new Date() }
     });
 
     // Registramos la actividad de login exitoso

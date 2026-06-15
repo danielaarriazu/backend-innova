@@ -5,6 +5,8 @@ import YAML from 'yamljs';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import { Request, Response } from 'express';
+import faqCategoryRoutes from './routes/faq-category.routes';
+import faqRoutes from './routes/faq.routes';
 
 // Cargar variables de entorno del .env
 dotenv.config();
@@ -30,6 +32,11 @@ app.use('/api/user', userRoutes);
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', message: 'Servidor de InnovaLab corriendo perfectamente' });
 });
+
+// Rutas para categorías de FAQ
+app.use('/api/faq-categories', faqCategoryRoutes);
+// Rutas para FAQs
+app.use('/api/faqs', faqRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor backend escuchando en http://localhost:${PORT}`);

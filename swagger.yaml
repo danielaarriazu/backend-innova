@@ -3,8 +3,9 @@ info:
   title: API de Autenticación - InnovaLab Chatbot
   description: >
     Especificación de los endpoints de registro y login. 
-    Arquitectura con inicialización de Bot integrada y registro de última sesión, histórico, 
+    Arquitectura con inicialización de Bot integrada y registro de última sesión, histórico
     de movimientos y autenticación de alta seguridad.
+    ABM de FAQs con categorías
   version: 1.0.0
 
 # Definimos el esquema de seguridad (El candado para el JWT)
@@ -113,13 +114,15 @@ paths:
                   type: string
                   format: email
                   example: "daniela@innovalab.com"
+                  description: Correo electrónico registrado.
                 password:
                   type: string
                   format: password
                   example: "PasswordSegura2026!"
+                  description: Contraseña de acceso.
       responses:
         '200':
-          description: Éxito. Token válido por 24h.
+          description: Credenciales válidas. Devuelve token válido por 24h.
           content:
             application/json:
               schema:
@@ -144,9 +147,19 @@ paths:
                         type: string
                         example: "daniela@innovalab.com"
         '401':
-          description: Credenciales inválidas.
+          description: Credenciales incorrectas o cuenta inactiva.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    oneOf:
+                      - example: "Credenciales inválidas"
+                      - example: "La cuenta se encuentra inactiva o dada de baja"
         '500':
-          description: Error interno.
+          description: Error interno del servidor.
   # ==========================================
   # MÓDULO: USUARIO (Requieren Token)
   # ==========================================
@@ -155,7 +168,7 @@ paths:
       summary: Cambiar contraseña
       description: >
         Permite al emprendedor cambiar su contraseña actual por una nueva. 
-        Aplica validaciones estrictas (Regex) y registra el movimiento en la tabla RegistroActividad.
+        Aplica validaciones estrictas y registra el movimiento en la tabla RegistroActividad.
       tags:
         - Usuario
       security:
@@ -173,18 +186,41 @@ paths:
                 passwordActual:
                   type: string
                   example: "PasswordSegura2026!"
+                  description: Contraseña de acceso actual.
                 nuevaPassword:
                   type: string
                   example: "InnovaLabNueva26@#"
+                  description: Nueva contraseña.
       responses:
         '200':
           description: Contraseña actualizada con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Contraseña actualizada con éxito."
         '400':
-          description: Contraseña actual incorrecta o nueva contraseña no cumple con los requisitos mínimos.
+          description: Error de validación o contraseña actual incorrecta.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    oneOf:
+                      - example: "La contraseña actual es incorrecta"
+                      - example: "La nueva contraseña debe tener mínimo 8 caracteres, una mayúscula..."
         '401':
-          description: Acceso denegado. Token faltante, expirado o inválido.
+          description: Token faltante o expirado.
         '404':
-          description: Usuario no encontrado o inactivo.
+          description: Usuario no encontrado.
         '500':
           description: Error interno del servidor.
 
@@ -197,11 +233,415 @@ paths:
       tags:
         - Usuario
       security:
-        - bearerAuth: [] # Exige el token JWT
+        - bearerAuth: [{ bearerAuth: [] }] # Exige el token JWT
       responses:
         '200':
-          description: Cuenta deshabilitada correctamente.
+          description: Cuenta dada de baja con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Cuenta deshabilitada correctamente. Se conservan datos para métricas."
         '401':
           description: Acceso denegado. Token faltante, expirado o inválido.
         '500':
           description: Error interno al procesar la baja.
+  # ==========================================
+  # MÓDULO: CATEGORÍAS FAQ
+  # ==========================================
+  /api/faq-categories:
+    get:
+      summary: Listar categorías de FAQs
+      description: Obtiene todas las categorías asociadas al bot del emprendedor logueado.
+      tags:
+        - Categorías FAQ
+      security:
+        - bearerAuth: []
+      responses:
+        responses:
+        '200':
+          description: Devuelve un array con todas las categorías del bot.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                      example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+                    bot_id:
+                      type: string
+                      format: uuid
+                      example: "09876543-abcd-efgh-ijkl-mnopqrstuvwx"
+                    nombre:
+                      type: string
+                      example: "Medios de Pago"
+                    fecha_creacion:
+                      type: string
+                      format: date-time
+                      example: "2026-06-15T15:30:00Z"
+        '401':
+          description: No autorizado. Token inválido.
+        '404':
+          description: Configuración de bot no encontrada para el usuario.
+        '500':
+          description: Error interno al obtener las categorías.
+    post:
+      summary: Crear categoría
+      description: Crea una nueva categoría de FAQs para el bot del emprendedor logueado.
+      tags:
+        - Categorías FAQ
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nombre
+              properties:
+                nombre:
+                  type: string
+                  minLength: 1
+                  example: "Envíos y Retiros"
+                  description: Nombre visible de la categoría. No puede estar vacío ni contener solo espacios.
+      responses:
+        '201':
+          description: Categoría creada con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Categoría creada con éxito."
+                  categoria:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+                      nombre:
+                        type: string
+                        example: "Envíos y Retiros"
+        '400':
+          description: El nombre de la categoría está vacío.
+        '404':
+          description: Configuración de bot no encontrada para el usuario.
+        '500':
+          description: Error interno al crear la categoría.
+
+  /api/faq-categories/{id}:
+    put:
+      summary: Editar categoría
+      description: Actualiza los detalles de una categoría de FAQs existente.
+      tags:
+        - Categorías FAQ
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nombre
+              properties:
+                nombre:
+                  type: string
+                  example: "Logística y Envíos"
+      responses:
+        '200':
+          description: Categoría actualizada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Categoría actualizada con éxito."
+                  categoria:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+                      nombre:
+                        type: string
+                        example: "Envíos y Retiros"
+        '400':
+          description: El nombre de la categoría está vacío.
+        '404':
+          description: Categoría no encontrada o no autorizada.
+        '500':
+          description: Error interno al actualizar la categoría.
+    delete:
+      summary: Eliminar categoría
+      description: Elimina la categoría de forma permanente. Requiere que no existan FAQs asociadas (regla de restricción).
+      tags:
+        - Categorías FAQ
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+      responses:
+        '200':
+          description: Categoría eliminada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Categoría eliminada con éxito."
+        '400':
+          description: Restricción de base de datos activa.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No podés eliminar esta categoría porque tiene 3 pregunta(s) asociada(s). Eliminá o mové las preguntas primero."
+        '404':
+          description: Categoría no encontrada.
+        '500':
+          description: Error interno al eliminar la categoría.
+
+  # ==========================================
+  # MÓDULO: PREGUNTAS FRECUENTES (FAQ)
+  # ==========================================
+  /api/faqs:
+    get:
+      summary: Listar FAQs
+      description: Obtiene todas las preguntas frecuentes del bot, incluyendo el nombre de la categoría a la que pertenecen.
+      tags:
+        - FAQs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array de FAQs devuelto con éxito.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                      example: "b1c2d3e4-f5g6-7890-hij1-klmnopqrstuv"
+                    categoria_id:
+                      type: string
+                      format: uuid
+                      example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+                    pregunta:
+                      type: string
+                      example: "¿Hacen envíos a todo el país?"
+                    respuesta:
+                      type: string
+                      example: "Sí, realizamos envíos a través de Correo Argentino."
+                    keywords:
+                      type: string
+                      example: "envíos, correo, logística, interior, país"
+                    categoria:
+                      type: object
+                      properties:
+                        nombre:
+                          type: string
+                          example: "Envíos y Retiros"
+        '400':
+          description: Error al obtener las FAQs.
+        '401':
+          description: No autorizado. Token inválido.
+        '404':
+          description: No encontrado. Configuración de bot no hallada para este usuario.
+        '500': 
+          description: Error interno al obtener las FAQs.
+    post:
+      summary: Crear una nueva FAQ
+      description: Asocia una nueva pregunta y respuesta a una categoría existente.
+      tags:
+        - FAQs
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoria_id: { type: string }
+                pregunta: { type: string }
+                respuesta: { type: string }
+                keywords: { type: string }
+      properties:
+                categoria_id:
+                  type: string
+                  format: uuid
+                  example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+                  description: ID de la categoría a la que pertenece.
+                pregunta:
+                  type: string
+                  example: "¿Aceptan transferencias bancarias?"
+                respuesta:
+                  type: string
+                  example: "Sí, aceptamos transferencias. Te enviaremos el CBU al confirmar el pedido."
+                keywords:
+                  type: string
+                  example: "transferencia, banco, cbu, alias, pagar"
+                  description: Palabras clave separadas por comas para mejorar la coincidencia del bot.
+      responses:
+        '201':
+          description: Pregunta frecuente creada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pregunta frecuente creada con éxito."
+                  faq:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: "c3d4e5f6-g7h8-9012-ijkl-mnopqrstuvwx"
+                      pregunta:
+                        type: string
+                        example: "¿Aceptan transferencias bancarias?"
+        '400':
+          description: Faltan campos obligatorios en el body.
+        '404':
+          description: La categoría no existe o no pertenece al bot del usuario.
+        '500':
+          description: Error interno al crear la FAQ. 
+
+  /api/faqs/{id}:
+    put:
+      summary: Editar FAQ
+      description: Modifica los datos de una pregunta frecuente específica.
+      tags:
+        - FAQs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "b1c2d3e4-f5g6-7890-hij1-klmnopqrstuv"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoria_id:
+                  type: string
+                  format: uuid
+                  example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
+                pregunta:
+                  type: string
+                  example: "¿Tienen cuotas sin interés?"
+                respuesta:
+                  type: string
+                  example: "Ofrecemos 3 cuotas sin interés con tarjetas de crédito bancarias."
+                keywords:
+                  type: string
+                  example: "cuotas, interés, crédito, tarjeta"
+      responses:
+        '200':
+          description: FAQ actualizada con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pregunta actualizada con éxito."
+                  faq:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "b1c2d3e4-f5g6-7890-hij1-klmnopqrstuv"
+                      pregunta:
+                        type: string
+                        example: "¿Tienen cuotas sin interés?"
+        '400':
+          description: La nueva categoría es inválida.
+        '404':
+          description: Pregunta no encontrada o no autorizada.
+        '500':
+          description: Error interno al actualizar la FAQ.
+    delete:
+      summary: Eliminar FAQ
+      description: Elimina permanentemente la pregunta frecuente de la base de conocimientos.
+      tags:
+        - FAQs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "b1c2d3e4-f5g6-7890-hij1-klmnopqrstuv"
+      responses:
+        '200':
+          description: FAQ eliminada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pregunta eliminada con éxito."
+        '404':
+          description: Pregunta no encontrada.
+        '500':
+          description: Error interno al eliminar la FAQ.

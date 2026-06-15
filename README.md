@@ -11,6 +11,9 @@ Este es el repositorio del backend para el MVP de la plataforma de chatbot y ges
 - **Base de Datos:** PostgreSQL (Alojada en la nube - Neon)
 - **Autenticación:** JSON Web Tokens (JWT) & Bcrypt para encriptación de contraseñas
 - **Herramientas de desarrollo:** TSX (TypeScript Execute)
+* **Validación:** password-validator
+* **Documentación:** Swagger / OpenAPI
+* **Despliegue:** Render (CI/CD)
 
 ##  Estructura del Proyecto
 
@@ -21,7 +24,8 @@ Este es el repositorio del backend para el MVP de la plataforma de chatbot y ges
 │   ├── middlewares/  # Interceptores de seguridad (Autenticación JWT)
 │   ├── routes/       # Definición de endpoints y enrutamiento modular
 │   ├── services/     # Lógica de soporte (Historial de sesiones, Auditoría)
-│   └── index.ts      # Punto de entrada del servidor Express
+│   ├── utils/        # Logica de soporte para validar contraseñas seguras
+    └── index.ts      # Punto de entrada del servidor Express
 ├── .env              # Variables de entorno (Ignorado en Git)
 └── package.json      # Dependencias y scripts del proyecto
 
@@ -43,13 +47,27 @@ Levanta el servidor en modo desarrollo:
 Bash
 npm run dev
 
-Endpoints Disponibles (Funcionales :D)
-Autenticación (/api/auth)
-POST /register: Registra una nueva cuenta de PyME/Emprendedor y aprovisiona su bot base mediante una transacción automatica
+## Módulos Implementados
+### Autenticación y Gestión de Usuario
+* Registro de emprendedor e inicialización automática de la configuración de su bot.
+* Login seguro con generación de JWT válido por 24 horas.
+* Modificación de contraseña con validaciones estrictas (longitud, mayúsculas, números y símbolos).
+* Baja lógica de cuenta (Soft Delete) conservando métricas históricas.
 
-POST /login: Autentica al usuario, registra el ingreso en el historial de movimientos y retorna el Token JWT de sesión.
+### Registro de movimientios
+* Registro integral de actividades en la base de datos para cada acción realizada en la API.
+* Captura automática de tipo de movimiento, IP de origen y dispositivo (User-Agent).
 
-Gestión de Usuario (/api/user) — Requieren Token JWT
-POST /change-password: Valida reglas estrictas de seguridad y actualiza la contraseña, registrando la acción en el historial de movimientos.
+### FAQs
+  **Categorías FAQ (`/api/faq-categories`):**
+    **GET:** Listado cronológico de categorías asociadas al bot del usuario.
+    **POST:** Creación de nuevas categorías (Ej: "Envíos", "Medios de Pago").
+    **PUT:** Edición del nombre de la categoría.
+    **DELETE:** Baja de categoría. Incluye protección de integridad relacional (`onDelete: Restrict`), impidiendo borrar una categoría si esta posee preguntas asociadas.
 
-DELETE /delete-account: Ejecuta un "Soft Delete" (Baja lógica) para deshabilitar la cuenta conservando la integridad de las métricas, registrando la acción en el historial de movimientos.
+  **Preguntas Frecuentes - FAQs (`/api/faqs`):**
+    **GET:** Listado de preguntas frecuentes incluyendo el nombre de la categoría asociada (Join relacional).
+    **POST:** Creación de pregunta, respuesta y asignación de palabras clave (*keywords*) para mejorar la coincidencia semántica del bot.
+    **PUT:** Edición integral de la FAQ (permite reasignar de categoría).
+    **DELETE:** Eliminación permanente de la pregunta.
+
