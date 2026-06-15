@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
 import { Request, Response } from 'express';
 
 // Cargar variables de entorno del .env
@@ -21,6 +22,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Montamos las rutas de autenticación bajo el prefijo /api/auth
 app.use('/api/auth', authRoutes);
+
+// Montamos las rutas de usuario bajo el prefijo /api/user
+app.use('/api/user', userRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', message: 'Servidor de InnovaLab corriendo perfectamente' });

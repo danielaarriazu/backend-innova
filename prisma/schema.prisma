@@ -20,8 +20,9 @@ model Usuario {
   rol          Rol               @default(EMPRENDEDOR)
   estado       EstadoUsuario     @default(ACTIVO)
   fechaRegistro DateTime          @default(now())
-  ultimaSesion DateTime?         // Para la auditoría de login que configuramos
+  ultimaSesion DateTime?         
   bot          ConfiguracionBot? // Relación 1 a 1 con la configuración del bot
+  historialSesiones HistorialSesion[] 
 }
 
 model ConfiguracionBot {
@@ -35,6 +36,15 @@ model ConfiguracionBot {
   fechaModificacion DateTime @updatedAt
 }
 
+model HistorialSesion {
+  id           String   @id @default(uuid())
+  usuario_id   String
+  usuario      Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  fechaLogin   DateTime @default(now())
+  dispositivo  String?
+  ip           String?
+}
+
 enum Rol {
   ADMIN
   EMPRENDEDOR
@@ -43,4 +53,5 @@ enum Rol {
 enum EstadoUsuario {
   ACTIVO
   SUSPENDIDO
+  ELIMINADO
 }
