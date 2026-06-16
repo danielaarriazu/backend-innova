@@ -644,3 +644,124 @@ paths:
           description: Pregunta no encontrada.
         '500':
           description: Error interno al eliminar la FAQ.
+  # ==========================================
+  # MÓDULO: CONFIGURACIÓN DEL BOT
+  # ==========================================
+  /api/bot:
+    get:
+      summary: Obtener la configuración del bot
+      description: Devuelve la configuración actual del bot asociado al emprendedor logueado.
+      tags:
+        - Configuración Bot
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Configuración obtenida con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  configuracion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: "d4e5f6g7-h8i9-012j-klmn-opqrstuvwxyz"
+                      usuarioId:
+                        type: string
+                        format: uuid
+                        example: "4fbc752d-9321-4f11-8e99-fa20d2d88851"
+                      activo:
+                        type: boolean
+                        example: true
+                        description: Indica si el bot está encendido respondiendo mensajes.
+                      nombreNegocio:
+                        type: string
+                        example: "InnovaLab Store"
+                        nullable: true
+                      logoUrl:
+                        type: string
+                        example: "https://midominio.com/logo.png"
+                        nullable: true
+                      mensajeBienvenida:
+                        type: string
+                        example: "¡Hola! Bienvenido a InnovaLab Store. ¿En qué te puedo ayudar hoy?"
+                        nullable: true
+                      mensajeFueraHorario:
+                        type: string
+                        example: "En este momento estamos cerrados. Por favor, dejanos tu consulta y te responderemos a la brevedad."
+                        nullable: true
+                      derivacionAutomatica:
+                        type: boolean
+                        example: false
+                        description: Si es true, el bot transfiere la charla a un humano ante consultas complejas.
+        '401':
+          description: No autorizado. Token faltante, expirado o inválido.
+        '404':
+          description: Configuración de bot no encontrada para este usuario.
+        '500':
+          description: Error interno del servidor al obtener la configuración.
+
+    put:
+      summary: Actualizar la configuración del bot
+      description: >
+        Permite al emprendedor modificar parámetros de su bot. 
+        Solo se actualizarán los campos que sean enviados en el cuerpo de la petición.
+      tags:
+        - Configuración Bot
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                activo:
+                  type: boolean
+                  example: true
+                nombreNegocio:
+                  type: string
+                  example: "InnovaLab Store 2.0"
+                logoUrl:
+                  type: string
+                  example: "https://midominio.com/nuevo-logo.png"
+                mensajeBienvenida:
+                  type: string
+                  example: "¡Hola! Gracias por comunicarte con nosotros. ¿Qué estás buscando?"
+                mensajeFueraHorario:
+                  type: string
+                  example: "Nuestro horario de atención es de 9 a 18hs. Dejanos tu mensaje."
+                derivacionAutomatica:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Configuración actualizada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Configuración del bot actualizada con éxito."
+                  configuracion:
+                    type: object
+                    description: Objeto con la configuración ya actualizada en la base de datos.
+        '401':
+          description: No autorizado. Token faltante, expirado o inválido.
+        '404':
+          description: Configuración de bot no encontrada para este usuario.
+        '500':
+          description: Error interno del servidor al actualizar la configuración.
