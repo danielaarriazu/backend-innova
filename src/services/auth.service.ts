@@ -1,6 +1,6 @@
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import prisma from '../db';
+import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
 import { RegisterInput, LoginInput, AuthResult } from '../types/auth.types';
 import { EstadoUsuario } from '@prisma/client';
