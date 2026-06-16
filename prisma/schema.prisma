@@ -13,23 +13,24 @@ datasource db {
 }
 
 model Usuario {
-  id           String            @id @default(uuid())
-  nombre       String
-  email        String            @unique
-  password     String
-  rol          Rol               @default(EMPRENDEDOR)
-  estado       EstadoUsuario     @default(ACTIVO)
-  fecha_registro     DateTime            @default(now())
-  ultima_sesion      DateTime?         
-  bot          ConfiguracionBot? // Relación 1 a 1 con la configuración del bot
-  historial_sesiones HistorialSesion[] 
+  id               String              @id @default(uuid())
+  nombre           String
+  email            String              @unique
+  password         String
+  rol              Rol                 @default(EMPRENDEDOR)
+  estado           EstadoUsuario       @default(ACTIVO)
+  fechaRegistro    DateTime            @default(now())
+  ultimaSesion     DateTime?         
+  
+  bot              ConfiguracionBot? 
+  historialSesiones HistorialSesion[] 
   actividades      RegistroActividad[]
 }
 
 model HistorialSesion {
   id           String   @id @default(uuid())
-  usuario_id   String
-  usuario      Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  usuarioId    String
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   fechaLogin   DateTime @default(now())
   dispositivo  String?
   ip           String?
@@ -37,24 +38,24 @@ model HistorialSesion {
 
 model ConfiguracionBot {
   id                    String         @id @default(uuid())
-  usuario_id            String         @unique
-  usuario               Usuario        @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  usuarioId             String         @unique
+  usuario               Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   
   // Estado y Datos del Negocio
-  activo                Boolean        @default(false) // Interruptor general del bot
-  nombre_negocio        String?
-  logo_url              String?        // URL de la imagen
+  activo                Boolean        @default(false)
+  nombreNegocio         String?
+  logoUrl               String?
   
   // Comportamiento del Bot
-  mensaje_bienvenida    String?        @db.Text
-  mensaje_fuera_horario String?        @db.Text
-  derivacion_automatica Boolean        @default(false) // Si es true, avisa al dueño
+  mensajeBienvenida     String?        @db.Text
+  mensajeFueraHorario   String?        @db.Text
+  derivacionAutomatica  Boolean        @default(false)
   
   // historialSesiones
-  fecha_creacion        DateTime       @default(now())
-  fecha_actualizacion   DateTime       @updatedAt
+  fechaCreacion         DateTime       @default(now())
+  fechaActualizacion    DateTime       @updatedAt
 
-  // Relaciones (Todo lo que le pertenece a este bot)
+  // Relaciones
   categoriasFAQ         CategoriaFAQ[]
   faqs                  Faq[]
   productos             Producto[]
@@ -63,60 +64,60 @@ model ConfiguracionBot {
 
 model CategoriaFAQ {
   id              String           @id @default(uuid())
-  bot_id          String
-  bot             ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
-  nombre          String           // Ej: "Envíos y entregas", "Medios de Pago", "Cambios y devoluciones"
+  botId           String
+  bot             ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  nombre          String           
   
-  faqs            Faq[]            // Relación: Una categoría tiene muchas FAQs
+  faqs            Faq[]            
   
-  fecha_creacion  DateTime         @default(now())
+  fechaCreacion   DateTime         @default(now())
 }
 
 model Faq {
   id                  String           @id @default(uuid())
-  bot_id              String
-  bot                 ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  botId               String
+  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
   
-  categoria_id        String
-  categoria           CategoriaFAQ     @relation(fields: [categoria_id], references: [id], onDelete: Restrict)
+  categoriaId         String
+  categoria           CategoriaFAQ     @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
   
   pregunta            String
   respuesta           String           @db.Text
-  keywords            String?          // Palabras clave separadas por comas
+  keywords            String?
   
-  fecha_creacion      DateTime         @default(now())
-  fecha_modificacion  DateTime         @updatedAt
+  fechaCreacion       DateTime         @default(now())
+  fechaModificacion   DateTime         @updatedAt
 }
 
 model Producto {
   id                  String           @id @default(uuid())
-  bot_id              String
-  bot                 ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  botId               String
+  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
   
   nombre              String
   descripcion         String?          @db.Text
   precio              Decimal          @db.Decimal(10, 2)
   stock               Int              @default(0)
-  url_imagen          String?
-  activo              Boolean          @default(true) // Para pausar ventas sin borrar el ítem
+  urlImagen           String?
+  activo              Boolean          @default(true) 
   
-  fecha_creacion      DateTime         @default(now())
-  fecha_actualizacion DateTime         @updatedAt
+  fechaCreacion       DateTime         @default(now())
+  fechaActualizacion  DateTime         @updatedAt
 }
 
 model SesionChat {
   id                  String           @id @default(uuid())
-  bot_id              String
-  bot                 ConfiguracionBot @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+  botId               String
+  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
   
-  numero_cliente      String           // El celular del comprador (Ej: "5491123456789")
+  numeroCliente       String           
   estado              EstadoChat       @default(BOT_ACTIVO)
   
-  fecha_creacion      DateTime         @default(now())
-  fecha_actualizacion DateTime         @updatedAt
+  fechaCreacion       DateTime         @default(now())
+  fechaActualizacion  DateTime         @updatedAt
 
-  // Regla de integridad: Un cliente no puede tener dos estados distintos en el mismo bot
-  @@unique([bot_id, numero_cliente]) 
+  // Se actualizó aquí también a botId y numeroCliente
+  @@unique([botId, numeroCliente]) 
 }
 
 
@@ -141,10 +142,10 @@ enum EstadoChat {
 
 model RegistroActividad {
   id          String   @id @default(uuid())
-  usuario_id  String
-  usuario     Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
-  accion      String   // Ej: "CAMBIO_PASSWORD", "EDICION_BOT", "LECTURA_REPORTE"
-  detalle     String   @db.Text // Ej: "El usuario modificó el mensaje de bienvenida"
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  accion      String   
+  detalle     String   @db.Text 
   ip          String?
   dispositivo String?
   fecha       DateTime @default(now())

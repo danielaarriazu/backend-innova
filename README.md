@@ -17,35 +17,44 @@ Este es el repositorio del backend para el MVP de la plataforma de chatbot y ges
 
 ##  Estructura del Proyecto
 
-```text
-├── prisma/           # Esquemas de base de datos y modelos de Prisma
+\`\`\`text
+├── prisma/           # Esquemas de base de datos (Nomenclatura estándar camelCase)
 ├── src/
-│   ├── controllers/  # Lógica de negocio (Autenticación, Usuario, etc.)
-│   ├── middlewares/  # Interceptores de seguridad (Autenticación JWT)
+│   ├── controllers/  # Capa Web: Parsea peticiones HTTP (req/res) y delega al servicio
+│   ├── lib/          # Instancias Singleton (ej: prisma.ts para evitar fugas de conexión)
+│   ├── middlewares/  # Interceptores: Manejo centralizado de errores y Autenticación
 │   ├── routes/       # Definición de endpoints y enrutamiento modular
-│   ├── services/     # Lógica de soporte (Historial de sesiones, Auditoría)
-│   ├── utils/        # Logica de soporte para validar contraseñas seguras
-    └── index.ts      # Punto de entrada del servidor Express
+│   ├── services/     # Capa de Negocio: Reglas puras, transacciones ACID y auditoría
+│   ├── types/        # Interfaces y tipos estrictos para TypeScript
+│   ├── utils/        # Lógica de soporte 
+│   ├── app.ts        # Configuración de Express, CORS y Swagger
+│   └── server.ts     # Punto de entrada (Bootstrapping) y conexión a base de datos
 ├── .env              # Variables de entorno (Ignorado en Git)
 └── package.json      # Dependencias y scripts del proyecto
+\`\`\`
 
 ## Configuracion del entorno
 
 Clona el repositorio.
 
-Instala las dependencias del proyecto:
-Bash
-npm install
-
-Configura tu archivo .env en la raíz con tus credenciales de PostgreSQL y tu clave secreta para JWT.
-Envía las tablas a tu base de datos vacía y Genera el cliente local de Prisma:
-Bash
-npx prisma db push
-npm install prisma@5 @prisma/client@5
-
-Levanta el servidor en modo desarrollo:
-Bash
-npm run dev
+1. Clona el repositorio.
+2. Instala las dependencias del proyecto:
+   \`\`\`bash
+   npm install
+   \`\`\`
+3. Crea tu archivo `.env` en la raíz con tus credenciales de PostgreSQL y tu clave maestra para JWT:
+   \`\`\`env
+   DATABASE_URL="tu_url_de_neon_aqui"
+   JWT_SECRET="tu_clave_generada_criptograficamente"
+   \`\`\`
+4. Sincroniza las tablas en tu base de datos y genera el cliente de Prisma:
+   \`\`\`bash
+   npx prisma migrate dev
+   \`\`\`
+5. Levanta el servidor en modo desarrollo:
+   \`\`\`bash
+   npm run dev
+   \`\`\`
 
 ## Módulos Implementados
 ### Autenticación y Gestión de Usuario

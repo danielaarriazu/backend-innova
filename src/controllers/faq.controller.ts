@@ -1,166 +1,125 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { registrarActividad } from '../services/activity.service';
+import { Request, Response, NextFunction } from 'express';
+import * as faqService from '../services/faq.service';
 
-const prisma = new PrismaClient();
-
-export const createFAQ = async (req: Request, res: Response): Promise<void> => {
+export const createFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const usuarioId = (req as any).usuario?.id;
-    const { categoria_id, pregunta, respuesta, keywords } = req.body;
+    const usuarioId = req.usuario?.id;
+    const { categoriaId, pregunta, respuesta, keywords } = req.body;
 
-    if (!categoria_id || !pregunta || !respuesta) {
-      res.status(400).json({ message: 'Los campos categoria_id, pregunta y respuesta son obligatorios.' });
+    if (!usuarioId) {
+      res.status(401).json({ error: 'No autorizado' });
       return;
     }
 
-    const bot = await prisma.configuracionBot.findUnique({ where: { usuario_id: usuarioId } });
-    if (!bot) {
-      res.status(404).json({ message: 'Configuración de bot no encontrada.' });
+    if (!categoriaId || !pregunta || !respuesta) {
+      res.status(400).json({ error: 'Los campos categoriaId, pregunta y respuesta son obligatorios.' });
       return;
     }
 
-    const categoriaExiste = await prisma.categoriaFAQ.findFirst({
-      where: { id: categoria_id, bot_id: bot.id }
-    });
+    const ip = req.ip || req.socket.remoteAddress;
+    const dispositivo = req.headers['user-agent'];
 
-    if (!categoriaExiste) {
-      res.status(404).json({ message: 'La categoría especificada no existe o no pertenece a tu bot.' });
-      return;
-    }
+    const faq = await faqService.crearFAQ({ usuarioId, categoriaId, pregunta, respuesta, keywords, ip, dispositivo });
 
-    const nuevaFAQ = await prisma.faq.create({
-      data: {
-        bot_id: bot.id,
-        categoria_id,
-        pregunta: pregunta.trim(),
-        respuesta: respuesta.trim(),
-        keywords: keywords ? keywords.trim() : null
+    res.status(201).json({ success: true, message: 'Pregunta creada con éxito.', faq });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ error: 'Configuración de bot no encontrada.' });
+        return;
       }
-    });
-
-    await registrarActividad(
-      usuarioId,
-      'CREACION_FAQ',
-      `El usuario creó una nueva FAQ: "${pregunta}"`,
-      req
-    );
-
-    res.status(201).json({ message: 'Pregunta frecuente creada con éxito.', faq: nuevaFAQ });
-  } catch (error) {
-    console.error('Error al crear FAQ:', error);
-    res.status(500).json({ message: 'Error interno al crear la FAQ.' });
-  }
-};
-
-export const getFAQs = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const usuarioId = (req as any).usuario?.id;
-
-    const bot = await prisma.configuracionBot.findUnique({ where: { usuario_id: usuarioId } });
-    if (!bot) {
-      res.status(404).json({ message: 'Configuración de bot no encontrada.' });
-      return;
-    }
-
-    const faqs = await prisma.faq.findMany({
-      where: { bot_id: bot.id },
-      include: {
-        categoria: {
-          select: { nombre: true }
-        }
-      },
-      orderBy: { fecha_creacion: 'desc' }
-    });
-
-    res.json(faqs);
-  } catch (error) {
-    console.error('Error al obtener FAQs:', error);
-    res.status(500).json({ message: 'Error interno al obtener las FAQs.' });
-  }
-};
-
-export const updateFAQ = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const usuarioId = (req as any).usuario?.id;
-    const { id } = req.params;
-    const { categoria_id, pregunta, respuesta, keywords } = req.body;
-
-    const bot = await prisma.configuracionBot.findUnique({ where: { usuario_id: usuarioId } });
-    if (!bot) return;
-
-    const faqExistente = await prisma.faq.findFirst({ 
-      where: { id: id, bot_id: bot.id }
-    });
-
-    if (!faqExistente) {
-      res.status(404).json({ message: 'Pregunta no encontrada o no autorizada.' });
-      return;
-    }
-
-    if (categoria_id && categoria_id !== faqExistente.categoria_id) {
-      const categoriaValida = await prisma.categoriaFAQ.findFirst({
-        where: { id: categoria_id, bot_id: bot.id }
-      });
-      if (!categoriaValida) {
-        res.status(400).json({ message: 'La nueva categoría es inválida.' });
+      if (error.message === 'CATEGORY_NOT_FOUND') {
+        res.status(404).json({ error: 'La categoría especificada no existe o no pertenece a tu bot.' });
         return;
       }
     }
-
-    const faqActualizada = await prisma.faq.update({
-      where: { id },
-      data: {
-        categoria_id: categoria_id || faqExistente.categoria_id,
-        pregunta: pregunta ? pregunta.trim() : faqExistente.pregunta,
-        respuesta: respuesta ? respuesta.trim() : faqExistente.respuesta,
-        keywords: keywords !== undefined ? keywords : faqExistente.keywords // Permite borrar las keywords si se envía null/vacío
-      }
-    });
-
-    await registrarActividad(
-      usuarioId,
-      'EDICION_FAQ',
-      `El usuario editó la FAQ: "${faqActualizada.pregunta}"`,
-      req
-    );
-
-    res.json({ message: 'Pregunta actualizada con éxito.', faq: faqActualizada });
-  } catch (error) {
-    console.error('Error al actualizar FAQ:', error);
-    res.status(500).json({ message: 'Error interno al actualizar la pregunta.' });
+    next(error);
   }
 };
 
-export const deleteFAQ = async (req: Request, res: Response): Promise<void> => {
+export const getFAQs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const usuarioId = (req as any).usuario?.id;
-    const { id } = req.params;
-
-    const bot = await prisma.configuracionBot.findUnique({ where: { usuario_id: usuarioId } });
-    if (!bot) return;
-
-    const faqExistente = await prisma.faq.findFirst({
-      where: { id: id, bot_id: bot.id }
-    });
-
-    if (!faqExistente) {
-      res.status(404).json({ message: 'Pregunta no encontrada o no autorizada.' });
+    const usuarioId = req.usuario?.id;
+    
+    if (!usuarioId) {
+      res.status(401).json({ error: 'No autorizado' });
       return;
     }
 
-    await prisma.faq.delete({ where: { id } });
+    const faqs = await faqService.obtenerFAQs(usuarioId);
+    res.status(200).json({ success: true, faqs });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
+      res.status(404).json({ error: 'Configuración de bot no encontrada.' });
+      return;
+    }
+    next(error);
+  }
+};
 
-    await registrarActividad(
-      usuarioId,
-      'ELIMINACION_FAQ',
-      `El usuario eliminó la FAQ: "${faqExistente.pregunta}"`,
-      req
-    );
+export const updateFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const usuarioId = req.usuario?.id;
+    const faqId = req.params.id;
+    const { categoriaId, pregunta, respuesta, keywords } = req.body;
 
-    res.json({ message: 'Pregunta eliminada con éxito.' });
-  } catch (error) {
-    console.error('Error al eliminar FAQ:', error);
-    res.status(500).json({ message: 'Error interno al eliminar la pregunta.' });
+    if (!usuarioId) {
+      res.status(401).json({ error: 'No autorizado' });
+      return;
+    }
+
+    const ip = req.ip || req.socket.remoteAddress;
+    const dispositivo = req.headers['user-agent'];
+
+    const faq = await faqService.actualizarFAQ({ usuarioId, faqId, categoriaId, pregunta, respuesta, keywords, ip, dispositivo });
+
+    res.status(200).json({ success: true, message: 'Pregunta actualizada con éxito.', faq });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'FAQ_NOT_FOUND') {
+        res.status(404).json({ error: 'La pregunta especificada no existe o no pertenece a tu bot.' });
+        return;
+      }
+      if (error.message === 'CATEGORY_NOT_FOUND') {
+        res.status(400).json({ error: 'La nueva categoría especificada no existe.' });
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
+export const deleteFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const usuarioId = req.usuario?.id;
+    const faqId = req.params.id;
+
+    if (!usuarioId) {
+      res.status(401).json({ error: 'No autorizado' });
+      return;
+    }
+
+    const ip = req.ip || req.socket.remoteAddress;
+    const dispositivo = req.headers['user-agent'];
+
+    await faqService.eliminarFAQ({ usuarioId, faqId, ip, dispositivo });
+
+    res.status(200).json({ success: true, message: 'Pregunta eliminada con éxito.' });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'FAQ_NOT_FOUND') {
+        res.status(404).json({ error: 'La pregunta no fue encontrada o ya fue eliminada.' });
+        return;
+      }
+    }
+    next(error);
   }
 };

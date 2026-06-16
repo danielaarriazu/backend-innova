@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: API de Autenticación y Base de Conocimientos - InnovaLab Chatbot
+  title: API de Autenticación y Configuracion de Bot - InnovaLab Chatbot
   description: >
     Especificación de los endpoints de registro y login. 
     Arquitectura con inicialización de Bot integrada y registro de última sesión, histórico
@@ -278,14 +278,14 @@ paths:
                       type: string
                       format: uuid
                       example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
-                    bot_id:
+                    botId:
                       type: string
                       format: uuid
                       example: "09876543-abcd-efgh-ijkl-mnopqrstuvwx"
                     nombre:
                       type: string
                       example: "Medios de Pago"
-                    fecha_creacion:
+                    fechaCreacion:
                       type: string
                       format: date-time
                       example: "2026-06-15T15:30:00Z"
@@ -464,7 +464,7 @@ paths:
                       type: string
                       format: uuid
                       example: "b1c2d3e4-f5g6-7890-hij1-klmnopqrstuv"
-                    categoria_id:
+                    categoriaId:
                       type: string
                       format: uuid
                       example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
@@ -505,11 +505,11 @@ paths:
             schema:
               type: object
               required:
-                - categoria_id
+                - categoriaId
                 - pregunta
                 - respuesta
               properties:
-                categoria_id:
+                categoriaId:
                   type: string
                   format: uuid
                   example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"
@@ -575,7 +575,7 @@ paths:
             schema:
               type: object
               properties:
-                categoria_id:
+                categoriaId:
                   type: string
                   format: uuid
                   example: "1a2b3c4d-5678-90ef-ghij-klmnopqrstuv"

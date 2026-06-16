@@ -1,98 +1,80 @@
-import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import { PrismaClient, EstadoUsuario } from '@prisma/client';
-import { registrarActividad } from '../services/activity.service';
-import { passwordSchema } from '../utils/password.validator';
+import { Request, Response, NextFunction } from 'express';
+import * as userService from '../services/user.service';
+import { passwordSchema } from '../utils/password.validator'; 
 
-const prisma = new PrismaClient();
-
-//  CAMBIAR CONTRASEÑA
-export const changePassword = async (req: Request, res: Response): Promise<void> => {
+export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { passwordActual, nuevaPassword } = req.body;
     
-    // El id del usuario vendrá inyectado por el middleware de token en req.usuario
     const usuarioId = (req as any).usuario?.id; 
 
-    console.log("ID del token recibido:", usuarioId); // Debugging: Verificar que el ID del token se reciba correctamente
-
     if (!usuarioId) {
-      res.status(401).json({ message: 'No autorizado. Falta el contexto de usuario.' });
+      res.status(401).json({ error: 'No autorizado. Falta el contexto de usuario.' });
       return;
     }
 
-    // Buscamos al usuario en la base de datos
-    const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
-    if (!usuario || usuario.estado === EstadoUsuario.ELIMINADO) {
-      res.status(404).json({ message: 'Usuario no encontrado' });
+    if (!passwordActual || !nuevaPassword) {
+      res.status(400).json({ error: 'La contraseña actual y la nueva son obligatorias.' });
       return;
     }
 
-    // Validamos contraseña segura: usando  una funcion de validación externa (password-validator) con reglas especificas en utils/password.validator.ts
-    const passwordValida = await bcrypt.compare(passwordActual, usuario.password);
-    if (!passwordValida) {
-      res.status(400).json({ message: 'La contraseña actual es incorrecta' });
-      return;
-    }
-
-    // Validar el nivel de seguridad de la nueva contraseña
     if (!passwordSchema.validate(nuevaPassword)) {
       res.status(400).json({ 
-        message: 'La nueva contraseña debe tener mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.' 
+        error: 'La nueva contraseña no cumple con los requisitos de seguridad',
+        detalles: passwordSchema.validate(nuevaPassword, { list: true })
       });
       return;
     }
 
-    // Hashear la nueva contraseña
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(nuevaPassword, salt);
+    const ip = req.ip || req.socket.remoteAddress;
+    const dispositivo = req.headers['user-agent'];
 
-    // Guardar el cambio en PostgreSQL
-    await prisma.usuario.update({
-      where: { id: usuarioId },
-      data: { password: hashedPassword }
+    await userService.cambiarPassword({
+      usuarioId,
+      passwordActual,
+      nuevaPassword,
+      ip,
+      dispositivo
     });
 
-    // Registramos la actividad de cambio de contraseña
-    await registrarActividad(
-      usuarioId, 
-      'CAMBIO_CONTRASEÑA', 
-      'El usuario cambió su contraseña exitosamente.', 
-      req
-    );
-
-    res.json({ message: 'Contraseña actualizada con éxito' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error en el servidor al cambiar la contraseña' });
+    res.status(200).json({ success: true, message: 'Contraseña actualizada con éxito' });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'USER_NOT_FOUND') {
+        res.status(404).json({ error: 'Usuario no encontrado o la cuenta está inactiva' });
+        return;
+      }
+      if (error.message === 'INVALID_CURRENT_PASSWORD') {
+        res.status(400).json({ error: 'La contraseña actual es incorrecta' });
+        return;
+      }
+    }
+    next(error);
   }
 };
 
-// FALSO ELIMINAR 
-export const DeleteUser = async (req: Request, res: Response): Promise<void> => {
+export const DeleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const usuarioId = (req as any).usuario?.id;
 
     if (!usuarioId) {
-      res.status(401).json({ message: 'No autorizado' });
+      res.status(401).json({ error: 'No autorizado' });
       return;
     }
 
-    // En lugar de usar delete(), actualizamos su estado al enum ELIMINADO
-    await prisma.usuario.update({
-      where: { id: usuarioId },
-      data: { estado: EstadoUsuario.ELIMINADO }
-    });
+    const ip = req.ip || req.socket.remoteAddress;
+    const dispositivo = req.headers['user-agent'];
 
-    // Registramos la actividad de eliminación de cuenta
-    await registrarActividad(
-      usuarioId,
-      'ELIMINACION_CUENTA',
-      'El usuario eliminó su cuenta exitosamente.',
-      req
-    );
+    await userService.eliminarCuenta({ usuarioId, ip, dispositivo });
 
-    res.json({ message: 'La cuenta se ha dado de baja exitosamente.' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error en el servidor al procesar la baja de la cuenta' });
+    res.status(200).json({ success: true, message: 'Cuenta desactivada exitosamente' });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'USER_NOT_FOUND') {
+        res.status(404).json({ error: 'Usuario no encontrado o ya eliminado' });
+        return;
+      }
+    }
+    next(error);
   }
 };
