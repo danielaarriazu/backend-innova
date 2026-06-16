@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import app from './app';
-import prisma from './db';
+import prisma from './lib/prisma';
 
 const PORT = process.env.PORT || 3000;
 
@@ -12,7 +12,6 @@ async function startServer() {
     await prisma.$connect();
     console.log('Conectado a la base de datos PostgreSQL (Neon) exitosamente.');
 
-    // 2. Encendemos el servidor web
     app.listen(PORT, () => {
       console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
       console.log(`Documentación disponible en http://localhost:${PORT}/api-docs`);

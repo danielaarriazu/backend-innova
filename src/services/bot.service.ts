@@ -1,4 +1,4 @@
-import prisma from '../db';
+import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
 import { UpdateBotInput } from '../types/bot.types';
 

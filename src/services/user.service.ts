@@ -1,5 +1,5 @@
 import bcryptjs from 'bcryptjs';
-import prisma from '../db';
+import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
 import { ChangePasswordInput, DeleteAccountInput } from '../types/user.types';
 import { EstadoUsuario } from '@prisma/client';

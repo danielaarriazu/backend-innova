@@ -1,4 +1,4 @@
-import prisma from '../db';
+import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
 import { CreateCategoryInput, UpdateCategoryInput, DeleteCategoryInput } from '../types/faq-category.types';
 
