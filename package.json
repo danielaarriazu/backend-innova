@@ -1,19 +1,38 @@
 {
-  "name": "backend-chatbot-innova",
+  "name": "chatbot_innovalab",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend para el MVP de la plataforma de chatbot InnovaLab",
+  "main": "src/server.ts",
   "scripts": {
-  "start": "node index.js",
-  "dev": "nodemon index.js"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.2.1"
+    "@prisma/client": "^5.22.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.43",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/yamljs": "^0.2.34",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "password-validator": "^5.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "typescript": "^5.9.3",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2"
   }
 }

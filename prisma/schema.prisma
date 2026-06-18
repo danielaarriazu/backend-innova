@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id               String              @id @default(uuid())
+  nombre           String
+  email            String              @unique
+  password         String
+  rol              Rol                 @default(EMPRENDEDOR)
+  estado           EstadoUsuario       @default(ACTIVO)
+  fechaRegistro    DateTime            @default(now())
+  ultimaSesion     DateTime?         
+  
+  bot              ConfiguracionBot? 
+  historialSesiones HistorialSesion[] 
+  actividades      RegistroActividad[]
+}
+
+model HistorialSesion {
+  id           String   @id @default(uuid())
+  usuarioId    String
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  fechaLogin   DateTime @default(now())
+  dispositivo  String?
+  ip           String?
+}
+
+model ConfiguracionBot {
+  id                    String         @id @default(uuid())
+  usuarioId             String         @unique
+  usuario               Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  // Estado y Datos del Negocio
+  activo                Boolean        @default(false)
+  nombreNegocio         String?
+  logoUrl               String?
+  
+  // Comportamiento del Bot
+  mensajeBienvenida     String?        @db.Text
+  mensajeFueraHorario   String?        @db.Text
+  derivacionAutomatica  Boolean        @default(false)
+  
+  // historialSesiones
+  fechaCreacion         DateTime       @default(now())
+  fechaActualizacion    DateTime       @updatedAt
+
+  // Relaciones
+  categoriasFAQ         CategoriaFAQ[]
+  faqs                  Faq[]
+  productos             Producto[]
+  sesiones              SesionChat[]
+}
+
+model CategoriaFAQ {
+  id              String           @id @default(uuid())
+  botId           String
+  bot             ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  nombre          String           
+  
+  faqs            Faq[]            
+  
+  fechaCreacion   DateTime         @default(now())
+}
+
+model Faq {
+  id                  String           @id @default(uuid())
+  botId               String
+  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  
+  categoriaId         String
+  categoria           CategoriaFAQ     @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  
+  pregunta            String
+  respuesta           String           @db.Text
+  keywords            String?
+  
+  fechaCreacion       DateTime         @default(now())
+  fechaModificacion   DateTime         @updatedAt
+}
+
+model Producto {
+  id                  String           @id @default(uuid())
+  botId               String
+  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  
+  nombre              String
+  descripcion         String?          @db.Text
+  precio              Decimal          @db.Decimal(10, 2)
+  stock               Int              @default(0)
+  urlImagen           String?
+  activo              Boolean          @default(true) 
+  
+  fechaCreacion       DateTime         @default(now())
+  fechaActualizacion  DateTime         @updatedAt
+}
+
+model SesionChat {
+  id                  String           @id @default(uuid())
+  botId               String
+  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  
+  numeroCliente       String           
+  estado              EstadoChat       @default(BOT_ACTIVO)
+  
+  fechaCreacion       DateTime         @default(now())
+  fechaActualizacion  DateTime         @updatedAt
+
+  // Se actualizó aquí también a botId y numeroCliente
+  @@unique([botId, numeroCliente]) 
+}
+
+
+// Distintos roles que se maneja actualmente
+enum Rol {
+  ADMIN
+  EMPRENDEDOR
+}
+
+// Estados para el emprendedor
+enum EstadoUsuario {
+  ACTIVO
+  SUSPENDIDO
+  ELIMINADO
+}
+
+// Estados para el control de la atención
+enum EstadoChat {
+  BOT_ACTIVO
+  HUMANO_ATENDIENDO
+}
+
+model RegistroActividad {
+  id          String   @id @default(uuid())
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  accion      String   
+  detalle     String   @db.Text 
+  ip          String?
+  dispositivo String?
+  fecha       DateTime @default(now())
+}
