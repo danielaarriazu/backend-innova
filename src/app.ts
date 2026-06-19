@@ -8,6 +8,7 @@ import userRoutes from './routes/user.routes';
 import faqCategoryRoutes from './routes/faq-category.routes';
 import faqRoutes from './routes/faq.routes';
 import botRoutes from './routes/bot.routes';
+import productRoutes from './routes/product.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/faq-categories', faqCategoryRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/bot', botRoutes);
+app.use('/api/products', productRoutes);
 
 app.use(errorHandler);
 

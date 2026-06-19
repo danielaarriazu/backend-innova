@@ -83,7 +83,7 @@ model Faq {
   
   pregunta            String
   respuesta           String           @db.Text
-  keywords            String?
+  activa      Boolean   @default(true)
   
   fechaCreacion       DateTime         @default(now())
   fechaModificacion   DateTime         @updatedAt

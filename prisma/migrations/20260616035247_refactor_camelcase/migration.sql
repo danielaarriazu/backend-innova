@@ -65,7 +65,6 @@ CREATE TABLE "Faq" (
     "categoriaId" TEXT NOT NULL,
     "pregunta" TEXT NOT NULL,
     "respuesta" TEXT NOT NULL,
-    "keywords" TEXT,
     "fechaCreacion" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "fechaModificacion" TIMESTAMP(3) NOT NULL,
 

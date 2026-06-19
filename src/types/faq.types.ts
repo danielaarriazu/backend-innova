@@ -3,7 +3,7 @@ export interface CreateFaqInput {
   categoriaId: string;
   pregunta: string;
   respuesta: string;
-  keywords?: string;
+  activa?: boolean;
   ip?: string;
   dispositivo?: string;
 }
@@ -14,7 +14,7 @@ export interface UpdateFaqInput {
   categoriaId?: string;
   pregunta?: string;
   respuesta?: string;
-  keywords?: string;
+  activa?: boolean;
   ip?: string;
   dispositivo?: string;
 }

@@ -4,7 +4,7 @@ import * as faqService from '../services/faq.service';
 export const createFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const usuarioId = req.usuario?.id;
-    const { categoriaId, pregunta, respuesta, keywords } = req.body;
+    const { categoriaId, pregunta, respuesta, activa } = req.body;
 
     if (!usuarioId) {
       res.status(401).json({ error: 'No autorizado' });
@@ -19,7 +19,7 @@ export const createFAQ = async (req: Request, res: Response, next: NextFunction)
     const ip = req.ip || req.socket.remoteAddress;
     const dispositivo = req.headers['user-agent'];
 
-    const faq = await faqService.crearFAQ({ usuarioId, categoriaId, pregunta, respuesta, keywords, ip, dispositivo });
+    const faq = await faqService.crearFAQ({ usuarioId, categoriaId, pregunta, respuesta, activa, ip, dispositivo });
 
     res.status(201).json({ success: true, message: 'Pregunta creada con éxito.', faq });
   } catch (error: unknown) {
@@ -61,7 +61,7 @@ export const updateFAQ = async (req: Request, res: Response, next: NextFunction)
   try {
     const usuarioId = req.usuario?.id;
     const faqId = req.params.id;
-    const { categoriaId, pregunta, respuesta, keywords } = req.body;
+    const { categoriaId, pregunta, respuesta, activa } = req.body;
 
     if (!usuarioId) {
       res.status(401).json({ error: 'No autorizado' });
@@ -71,7 +71,7 @@ export const updateFAQ = async (req: Request, res: Response, next: NextFunction)
     const ip = req.ip || req.socket.remoteAddress;
     const dispositivo = req.headers['user-agent'];
 
-    const faq = await faqService.actualizarFAQ({ usuarioId, faqId, categoriaId, pregunta, respuesta, keywords, ip, dispositivo });
+    const faq = await faqService.actualizarFAQ({ usuarioId, faqId, categoriaId, pregunta, respuesta, activa, ip, dispositivo });
 
     res.status(200).json({ success: true, message: 'Pregunta actualizada con éxito.', faq });
   } catch (error: unknown) {

@@ -23,7 +23,8 @@ export const crearFAQ = async (data: CreateFaqInput) => {
       categoriaId: data.categoriaId,
       pregunta: data.pregunta.trim(),
       respuesta: data.respuesta.trim(),
-      keywords: data.keywords ? data.keywords.trim() : null
+      activa: data.activa !== undefined ? data.activa : true,
+      
     }
   });
 
@@ -74,7 +75,7 @@ export const actualizarFAQ = async (data: UpdateFaqInput) => {
       categoriaId: data.categoriaId || faqExistente.categoriaId,
       pregunta: data.pregunta ? data.pregunta.trim() : faqExistente.pregunta,
       respuesta: data.respuesta ? data.respuesta.trim() : faqExistente.respuesta,
-      keywords: data.keywords !== undefined ? data.keywords : faqExistente.keywords
+      activa: data.activa !== undefined ? data.activa : faqExistente.activa,
     }
   });
 

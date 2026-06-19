@@ -67,7 +67,12 @@ Clona el repositorio.
 * Registro integral de actividades en la base de datos para cada acción realizada en la API.
 * Captura automática de tipo de movimiento, IP de origen y dispositivo (User-Agent).
 
-### FAQs
+### Configuración del Bot
+   **Configuracion bot (`/api/bot`):**
+    **GET:** Recupera la configuración actual.
+    **PUT:** Actualiza los parámetros de comportamiento.
+
+### FAQs 
   **Categorías FAQ (`/api/faq-categories`):**
     **GET:** Listado cronológico de categorías asociadas al bot del usuario.
     **POST:** Creación de nuevas categorías (Ej: "Envíos", "Medios de Pago").
@@ -76,7 +81,12 @@ Clona el repositorio.
 
   **Preguntas Frecuentes - FAQs (`/api/faqs`):**
     **GET:** Listado de preguntas frecuentes incluyendo el nombre de la categoría asociada (Join relacional).
-    **POST:** Creación de pregunta, respuesta y asignación de palabras clave (*keywords*) para mejorar la coincidencia semántica del bot.
+    **POST:** Creación de pregunta, respuesta.
     **PUT:** Edición integral de la FAQ (permite reasignar de categoría).
     **DELETE:** Eliminación permanente de la pregunta.
 
+### Productos (`/api/products`):**
+    **GET:** Lista el catálogo completo.
+    **POST:** Alta de un nuevo producto.
+    **PUT:** Edición de producto existente.
+    **DELETE:** Eliminación de producto.

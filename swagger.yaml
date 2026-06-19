@@ -5,7 +5,9 @@ info:
     Especificación de los endpoints de registro y login. 
     Arquitectura con inicialización de Bot integrada y registro de última sesión, histórico
     de movimientos y autenticación de alta seguridad.
-    ABM de FAQs con categorías.
+    Configuracion del bot, permitiendo al emprendedor personalizar su experiencia al crear categorias y preguntas frecuentes. 
+    Ademas de cargar sus productos para que el bot pueda responder consultas sobre ellos.
+    Documentación detallada de cada endpoint, incluyendo validaciones, respuestas esperadas y códigos de error.
   version: 1.0.0
 
 components:
@@ -252,7 +254,7 @@ paths:
           description: Acceso denegado. Token faltante, expirado o inválido.
         '500':
           description: Error interno al procesar la baja.
-
+  
   # ==========================================
   # MÓDULO: CATEGORÍAS FAQ
   # ==========================================
@@ -474,9 +476,9 @@ paths:
                     respuesta:
                       type: string
                       example: "Sí, realizamos envíos a través de Correo Argentino."
-                    keywords:
-                      type: string
-                      example: "envíos, correo, logística, interior, país"
+                    activa:
+                      type: boolean
+                      example: true
                     categoria:
                       type: object
                       properties:
@@ -520,10 +522,10 @@ paths:
                 respuesta:
                   type: string
                   example: "Sí, aceptamos transferencias. Te enviaremos el CBU al confirmar el pedido."
-                keywords:
-                  type: string
-                  example: "transferencia, banco, cbu, alias, pagar"
-                  description: Palabras clave separadas por comas para mejorar la coincidencia del bot.
+                activa:
+                  type: boolean
+                  example: true
+                  description: Estado de la FAQ. Por defecto es true.
       responses:
         '201':
           description: Pregunta frecuente creada.
@@ -585,9 +587,9 @@ paths:
                 respuesta:
                   type: string
                   example: "Ofrecemos 3 cuotas sin interés con tarjetas de crédito bancarias."
-                keywords:
-                  type: string
-                  example: "cuotas, interés, crédito, tarjeta"
+                activa:
+                  type: boolean
+                  example: true
       responses:
         '200':
           description: FAQ actualizada con éxito.
@@ -616,7 +618,7 @@ paths:
           description: Error interno al actualizar la FAQ.
     delete:
       summary: Eliminar FAQ
-      description: Elimina permanentemente la pregunta frecuente de la base de conocimientos.
+      description: Elimina permanentemente la pregunta frecuente de la base de datos.
       tags:
         - FAQs
       security:
@@ -644,6 +646,230 @@ paths:
           description: Pregunta no encontrada.
         '500':
           description: Error interno al eliminar la FAQ.
+  # ==========================================
+  # MÓDULO: PRODUCTOS (CATÁLOGO)
+  # ==========================================
+  /api/products:
+    get:
+      summary: Listar Productos
+      description: Obtiene todo el catálogo de productos o servicios asociados al bot del emprendedor logueado.
+      tags:
+        - Productos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array de productos devuelto con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  productos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          example: "d1e2f3g4-h5i6-7890-jklm-nopqrstuvwxy"
+                        nombre:
+                          type: string
+                          example: "Remera Sublimada Personalizada"
+                        descripcion:
+                          type: string
+                          example: "Remera de algodón con diseño exclusivo DTF."
+                        precio:
+                          type: number
+                          example: 15000
+                        stock:
+                          type: number
+                          example: 50
+                        urlImagen:
+                          type: string
+                          example: "https://ejemplo.com/remera.jpg"
+                        activo:
+                          type: boolean
+                          example: true
+                        fechaCreacion:
+                          type: string
+                          format: date-time
+        '401':
+          description: No autorizado. Token inválido o faltante.
+        '404':
+          description: Configuración de bot no encontrada para el usuario.
+        '500':
+          description: Error interno al obtener los productos.
+    post:
+      summary: Crear Producto
+      description: Agrega un nuevo producto o servicio al catálogo del emprendedor.
+      tags:
+        - Productos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nombre
+                - precio
+              properties:
+                nombre:
+                  type: string
+                  example: "Remera Sublimada Personalizada"
+                  description: Nombre del producto o servicio.
+                descripcion:
+                  type: string
+                  example: "Remera de algodón con diseño exclusivo DTF."
+                  description: Descripción detallada (opcional).
+                precio:
+                  type: number
+                  example: 15000
+                  description: Precio unitario.
+                stock:
+                  type: number
+                  example: 50
+                  description: Cantidad disponible (opcional, por defecto 0).
+                urlImagen:
+                  type: string
+                  example: "https://ejemplo.com/remera.jpg"
+                  description: URL de la foto del producto (opcional).
+                activo:
+                  type: boolean
+                  example: true
+                  description: Define si el producto está visible en el catálogo (opcional, por defecto true).
+      responses:
+        '201':
+          description: Producto creado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Producto creado con éxito."
+                  producto:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      nombre:
+                        type: string
+                      precio:
+                        type: number
+        '400':
+          description: Faltan los campos obligatorios (nombre o precio).
+        '404':
+          description: Configuración de bot no encontrada.
+        '500':
+          description: Error interno al crear el producto.
+
+  /api/products/{id}:
+    put:
+      summary: Editar Producto
+      description: Actualiza los detalles de un producto existente.
+      tags:
+        - Productos
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "d1e2f3g4-h5i6-7890-jklm-nopqrstuvwxy"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  example: "Remera Sublimada Premium"
+                descripcion:
+                  type: string
+                  example: "Remera de algodón premium con diseño DTF."
+                precio:
+                  type: number
+                  example: 18000
+                stock:
+                  type: number
+                  example: 45
+                urlImagen:
+                  type: string
+                  example: "https://ejemplo.com/remera-premium.jpg"
+                activo:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Producto actualizado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Producto actualizado con éxito."
+                  producto:
+                    type: object
+        '404':
+          description: Producto no encontrado o no pertenece al catálogo del usuario.
+        '500':
+          description: Error interno al actualizar el producto.
+    delete:
+      summary: Eliminar Producto
+      description: Elimina permanentemente un producto del catálogo del bot.
+      tags:
+        - Productos
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "d1e2f3g4-h5i6-7890-jklm-nopqrstuvwxy"
+      responses:
+        '200':
+          description: Producto eliminado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Producto eliminado con éxito."
+        '404':
+          description: Producto no encontrado o ya eliminado.
+        '500':
+          description: Error interno al eliminar el producto.
   # ==========================================
   # MÓDULO: CONFIGURACIÓN DEL BOT
   # ==========================================
