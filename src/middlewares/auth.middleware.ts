@@ -46,3 +46,26 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction):
     res.status(401).json({ error: 'Token inválido o expirado. Por favor, inicie sesión nuevamente.' });
   }
 };
+
+export const verificarTokenOpcional = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+
+    req.usuario = {
+      id: decoded.id,
+      email: decoded.email,
+      rol: decoded.rol
+    };
+
+    next();
+  } catch (error) {
+    next();
+  }
+};
