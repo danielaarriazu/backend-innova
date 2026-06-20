@@ -1,15 +1,16 @@
 openapi: 3.0.0
 info:
-  title: API de Autenticación y Configuracion de Bot - InnovaLab Chatbot
+title: API de Autenticación, Configuración de Bot y Log de registros - InnovaLab Chatbot
   description: >
-    Especificación de los endpoints de registro y login. 
-    Arquitectura con inicialización de Bot integrada y registro de última sesión, histórico
-    de movimientos y autenticación de alta seguridad.
-    Configuracion del bot, permitiendo al emprendedor personalizar su experiencia al crear categorias y preguntas frecuentes. 
-    Ademas de cargar sus productos para que el bot pueda responder consultas sobre ellos.
-    Documentación detallada de cada endpoint, incluyendo validaciones, respuestas esperadas y códigos de error.
-  version: 1.0.0
-
+    Especificación completa de los endpoints del backend de InnovaLab.
+    
+    El sistema cuenta con una arquitectura de múltiples módulos:
+    - Autenticación y Seguridad: Registro, login, historial de sesiones y gestión de cuenta.
+    - Configuración del Bot: Permite al emprendedor personalizar la experiencia de su asistente virtual, gestionar categorías, preguntas frecuentes (FAQs) y cargar su catálogo de productos.
+    - Analítica y Telemetría: Pipeline de datos de alta concurrencia que registra el comportamiento de los usuarios (clics, navegación, errores) a lo largo del embudo de conversión, unificando el tráfico de visitantes anónimos con usuarios autenticados.
+    
+    Documentación detallada de cada endpoint, incluyendo validaciones estrictas, manejo de Rate Limiting, respuestas esperadas y códigos de error.
+  version: 1.1.0
 components:
   securitySchemes:
     bearerAuth:
@@ -991,3 +992,93 @@ paths:
           description: Configuración de bot no encontrada para este usuario.
         '500':
           description: Error interno del servidor al actualizar la configuración.
+  # ==========================================
+  # MÓDULO: TELEMETRÍA (ANALÍTICA)
+  # ==========================================
+  /api/telemetry:
+    post:
+      summary: Registrar eventos de telemetría
+      description: >
+        Recibe los eventos de navegación (clics, vistas de pantalla, errores del funnel) desde el frontend.
+        Este endpoint admite tráfico anónimo para analizar conversiones. Si se provee un Token JWT válido
+        en los headers, automáticamente asocia todo el historial de la sesión al usuario registrado. 
+        Posee un Rate Limit estricto de 60 peticiones por minuto por IP para evitar saturación de la cola de Redis.
+      tags:
+        - Telemetría
+      security:
+        - {} # Permite peticiones sin autenticar (Visitantes Anónimos)
+        - bearerAuth: [] # Permite peticiones autenticadas (Usuarios Logueados)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - eventos
+              properties:
+                sessionId:
+                  type: string
+                  example: "sesion-anonima-abc123"
+                  description: Identificador temporal generado por el frontend (usualmente almacenado en sessionStorage).
+                eventos:
+                  type: array
+                  description: Lista de acciones realizadas por el usuario a registrar en MotherDuck.
+                  items:
+                    type: object
+                    properties:
+                      tipoEvento:
+                        type: string
+                        example: "CLICK"
+                        description: Categoría de la acción (ej. PAGE_VIEW, CLICK, FUNNEL_STEP).
+                      pantallaActual:
+                        type: string
+                        example: "/dashboard"
+                        description: Ruta del frontend donde ocurrió el evento.
+                      elemento:
+                        type: string
+                        example: "boton_ver_planes"
+                        description: ID o nombre del elemento interactuado.
+                      metadata:
+                        type: object
+                        example: 
+                          tiempoEnPaginaSegundos: 15
+                          referral: "google"
+                        description: JSON dinámico con información extra útil para los analistas de datos.
+      responses:
+        '200':
+          description: Eventos recibidos y encolados exitosamente en Redis.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Eventos registrados"
+        '400':
+          description: Datos de entrada inválidos (falta sessionId o array de eventos vacío).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Datos de telemetría inválidos"
+        '429':
+          description: Límite de peticiones excedido (Rate Limit).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Demasiados eventos detectados. Bloqueo temporal por seguridad."
+        '500':
+          description: Error interno al procesar el mensaje hacia la cola.
