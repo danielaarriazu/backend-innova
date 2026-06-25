@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
 
+type ValidationTarget = 'body' | 'params' | 'query';
 
 export const validate =
-  (schema: z.ZodTypeAny) =>
+  (schema: z.ZodTypeAny, target: ValidationTarget = 'body') =>
   (req: Request, res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req[target]);
 
     if (!result.success) {
       const errores = formatZodErrors(result.error);
@@ -17,7 +18,7 @@ export const validate =
       return;
     }
 
-    req.body = result.data;
+    (req as any)[target] = result.data;
     next();
   };
 

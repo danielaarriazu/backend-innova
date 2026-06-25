@@ -3,6 +3,7 @@ export interface RegisterInput {
   email: string;
   password?: string;
   nombreNegocio?: string;
+  rubro?: string;
 }
 
 export interface LoginInput {
