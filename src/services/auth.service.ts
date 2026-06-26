@@ -21,7 +21,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
   const hashedPassword = await bcryptjs.hash(data.password, 10);
 
   const newUser = await prisma.$transaction(async (tx) => {
-  const usuarioCreado = await prisma.usuario.create({
+  const usuarioCreado = await tx.usuario.create({
     data: {
       nombre: data.nombre,
       email: data.email,
@@ -43,44 +43,87 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
   
   const botId = usuarioCreado.bot.id;
   
-  await tx.categoriaFAQ.createMany({
-        data: [
-          {
-            botId: botId,
-            nombre: "Precios y pagos",
-          },
-          {
-            botId: botId,
-            nombre: "Productos y stock",
-          },
-          {
-            botId: botId,
-            nombre: "Envíos",
-          },
-          {
-            botId: botId,
-            nombre: "Atención y horarios",
-          },
-          {
-            botId: botId,
-            nombre: "Proceso de compra",
-          }
-        ]
+  await tx.categoriaFAQ.create({
+      data: {
+        botId,
+        nombre: "Precios y pagos",
+        faqs: {
+          create: [{
+            botId,
+            pregunta: "¿Cuáles son los medios de pago?",
+            respuesta: "Aceptamos transferencias bancarias, tarjetas de crédito y débito a través de MercadoPago.",
+            activa: true,
+          }]
+        }
+      }
     });
+ 
     await tx.categoriaFAQ.create({
-      data: { botId: botId, nombre: "Precios y pagos", faqs: { create: [{ botId: botId, pregunta: "¿Cuáles son los medios de pago?", respuesta: "Aceptamos transferencias bancarias, tarjetas de crédito y débito a través de MercadoPago.", activa: true }] } }
+      data: {
+        botId,
+        nombre: "Productos y stock",
+        faqs: {
+          create: [{
+            botId,
+            pregunta: "¿Tienen stock disponible?",
+            respuesta: "Si, contamos con stock disponible para todos nuestros productos.",
+            activa: true,
+          }]
+        }
+      }
     });
+ 
     await tx.categoriaFAQ.create({
-      data: { botId: botId, nombre: "Productos y stock", faqs: { create: [{ botId: botId, pregunta: "¿Tienen stock disponible?", respuesta: "Si, contamos con stock disponible para todos nuestros productos.", activa: true }] } }
+      data: {
+        botId,
+        nombre: "Envíos",
+        faqs: {
+          create: [{
+            botId,
+            pregunta: "¿Realizan envios?",
+            respuesta: "Si, hacen envíos a todo el país.",
+            activa: true,
+          }]
+        }
+      }
     });
+ 
     await tx.categoriaFAQ.create({
-      data: { botId: botId, nombre: "Envíos", faqs: { create: [{ botId: botId, pregunta: "¿Realizan envios?", respuesta: "Si, hacen envíos a todo el país.", activa: true }] } }
+      data: {
+        botId,
+        nombre: "Atención y horarios",
+        faqs: {
+          create: [
+            {
+              botId,
+              pregunta: "¿Cuál es el horario de atención?",
+              respuesta: "Atendemos de lunes a viernes de 9 AM a 6 PM.",
+              activa: true,
+            },
+            {
+              botId,
+              pregunta: "¿Aceptan cambios o devoluciones?",
+              respuesta: "Sí, aceptamos cambios y devoluciones dentro de los primeros 30 días de recibido Unicamente los dias Lunes.",
+              activa: true,
+            }
+          ]
+        }
+      }
     });
+ 
     await tx.categoriaFAQ.create({
-      data: { botId: botId, nombre: "Atención y horarios", faqs: { create: [{ botId: botId, pregunta: "¿Cuál es el horario de atención?", respuesta: "Atendemos de lunes a viernes de 9 AM a 6 PM.", activa: true }, { botId: botId, pregunta: "¿Aceptan cambios o devoluciones?", respuesta: "Sí, aceptamos cambios y devoluciones dentro de los primeros 30 días de recibido Unicamente los dias Lunes.", activa: true }] } }
-    });
-    await tx.categoriaFAQ.create({
-      data: { botId: botId, nombre: "Proceso de compra", faqs: { create: [{ botId: botId, pregunta: "¿Hacen precio por mayor?", respuesta: "Si, ofrecemos precios especiales para compras por mayor.", activa: true }] } }
+      data: {
+        botId,
+        nombre: "Proceso de compra",
+        faqs: {
+          create: [{
+            botId,
+            pregunta: "¿Hacen precio por mayor?",
+            respuesta: "Si, ofrecemos precios especiales para compras por mayor.",
+            activa: true,
+          }]
+        }
+      }
     });
 
     return usuarioCreado;

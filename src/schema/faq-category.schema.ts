@@ -14,5 +14,10 @@ export const updateCategorySchema = z.object({
   nombre: nombreCategoria,
 });
 
+export const categoryParamsSchema = z.object({
+  id: z.string({ error: 'El ID es obligatorio' }).uuid('El ID debe ser un UUID válido'),
+});
+
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
+export type CategoryParams = z.infer<typeof categoryParamsSchema>;
