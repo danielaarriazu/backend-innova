@@ -16,8 +16,7 @@ export const cambiarPassword = async (data: ChangePasswordInput): Promise<void> 
     throw new Error('INVALID_CURRENT_PASSWORD');
   }
 
-  const saltRounds = 10;
-  const hashedPassword = await bcryptjs.hash(data.nuevaPassword, saltRounds);
+  const hashedPassword = await bcryptjs.hash(data.nuevaPassword, 10);
 
   await prisma.usuario.update({
     where: { id: data.usuarioId },
@@ -39,11 +38,7 @@ export const eliminarCuenta = async (data: DeleteAccountInput): Promise<void> =>
     select: { id: true, password: true, estado: true },
   });
 
-  if (!usuario) {
-    throw new Error('USER_NOT_FOUND');
-  }
-
-  if (usuario.estado === EstadoUsuario.ELIMINADO) {
+  if (!usuario || usuario.estado=== EstadoUsuario.ELIMINADO) {
     throw new Error('USER_NOT_FOUND');
   }
   
@@ -52,12 +47,13 @@ export const eliminarCuenta = async (data: DeleteAccountInput): Promise<void> =>
     throw new Error('INVALID_PASSWORD');
   }
 
-  await prisma.$transaction([
-    prisma.usuario.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.usuario.update({
       where: { id: data.usuarioId },
       data: { estado: EstadoUsuario.ELIMINADO },
-    }),
-    prisma.registroActividad.create({
+    });
+ 
+    await tx.registroActividad.create({
       data: {
         usuarioId: data.usuarioId,
         accion: 'ELIMINACION_CUENTA',
@@ -65,6 +61,6 @@ export const eliminarCuenta = async (data: DeleteAccountInput): Promise<void> =>
         ip: data.ip,
         dispositivo: data.dispositivo,
       },
-    }),
-  ]);
+    });
+  });
 };

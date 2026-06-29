@@ -1,14 +1,11 @@
-export interface RegisterInput {
-  nombre: string;
-  email: string;
-  password?: string;
-  nombreNegocio?: string;
-  rubro?: string;
+import type { registerSchema, loginSchema } from '../schema/auth.schema';
+import type { z } from 'zod';
+
+export type RegisterInput = z.infer<typeof registerSchema> & {
+  
 }
 
-export interface LoginInput {
-  email: string;
-  password?: string;
+export type LoginInput = z.infer<typeof loginSchema> &  {
   ip?: string;
   dispositivo?: string;
 }

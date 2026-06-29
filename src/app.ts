@@ -11,6 +11,7 @@ import botRoutes from './routes/bot.routes';
 import productRoutes from './routes/product.routes';
 import telemetryRoutes from './routes/telemetry.routes';
 import { errorHandler } from './middlewares/error.middleware';
+import prisma from './lib/prisma';
 
 const app = express();
 
@@ -22,6 +23,25 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Se aplica a todas las rutas. Bloquea cualquier script que bombardee el servidor de forma indiscriminada.
+const globalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 500,
+  message: { error: 'Demasiadas solicitudes. Intente nuevamente en un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === '/health', 
+});
+
+// Limiter de API — protege las rutas de negocio autenticadas.
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 200,
+  message: { error: 'Demasiadas solicitudes a la API. Intente nuevamente en un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // 10 intentos cada 15 minutos por IP, solo en los endpoints de auth
 const authLimiter = rateLimit({
@@ -35,9 +55,19 @@ const authLimiter = rateLimit({
 const swaggerDocument = YAML.load('./swagger.yaml');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'OK', message: 'Servidor de InnovaLab corriendo perfectamente' });
+app.get('/health', async (req: Request, res: Response) => {
+  try{
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'OK', db: 'connected', timestamp: new Date().toISOString() });
+  }
+  catch{
+    res.status(503).json({ status: 'ERROR', db: 'disconnected', timestamp: new Date().toISOString() });
+  }
+ 
 });
+
+app.use(globalLimiter);
+app.use('/api', apiLimiter);
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', userRoutes);

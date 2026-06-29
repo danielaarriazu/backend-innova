@@ -2,13 +2,14 @@ import { Router } from 'express';
 import { createProduct, getProducts, updateProduct, deleteProduct } from '../controllers/product.controller';
 import { verificarToken } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validator.middleware';
+import { authorize } from '../middlewares/authorize.middleware';
 import { createProductSchema, updateProductSchema, getProductsSchema, deleteProductSchema} from '../schema/product.schema';
 
 const router = Router();
 
-router.post('/', verificarToken, validate(createProductSchema), createProduct);
-router.get('/', verificarToken, validate(getProductsSchema,'query'), getProducts);
-router.put('/:id', verificarToken, validate(deleteProductSchema, 'params'),  validate(updateProductSchema), updateProduct);
-router.delete('/:id', verificarToken, validate(deleteProductSchema, 'params'),  deleteProduct);
+router.post('/', verificarToken, authorize('EMPRENDEDOR'), validate(createProductSchema), createProduct);
+router.get('/', verificarToken, authorize('EMPRENDEDOR'), validate(getProductsSchema,'query'), getProducts);
+router.put('/:id', verificarToken, authorize('EMPRENDEDOR'), validate(deleteProductSchema, 'params'),  validate(updateProductSchema), updateProduct);
+router.delete('/:id', verificarToken, authorize('EMPRENDEDOR'), validate(deleteProductSchema, 'params'),  deleteProduct);
 
 export default router;
