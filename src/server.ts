@@ -12,9 +12,9 @@ async function startServer() {
     await prisma.$connect();
     console.log('Conectado a la base de datos PostgreSQL (Neon) exitosamente.');
 
-    app.listen(PORT, () => {
-      console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
-      console.log(`Documentación disponible en http://localhost:${PORT}/api-docs`);
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`Servidor backend escuchando en puerto ${PORT}`);
+      console.log(`Documentación disponible en /api-docs`);
     });
   } catch (error) {
     console.error('Error crítico al iniciar el servidor:', error);
