@@ -1,39 +1,57 @@
 # Chatbot InnovaLab - Backend
 
-Este es el repositorio del backend para el MVP de la plataforma de chatbot y gestión de catálogos orientada a PyMEs. Desarrollado con una arquitectura robusta, escalable y con tipado estricto incluyendo un pipeline de datos analíticos para rastreo de embudos de conversión.
+Backend del MVP de la plataforma de chatbot para PyMEs. Permite a emprendedores configurar un asistente virtual con catálogo de productos, preguntas frecuentes y analítica de comportamiento de usuarios.
  
 ## Tecnologías utilizadas
 
 - **Runtime:** Node.js (v24+)
-- **Lenguaje:** TypeScript
-- **Framework Web:** Express
+- **Lenguaje:** TypeScript 5
+- **Framework Web:** Express 4
 - **ORM:** Prisma ORM (v5)
-- **Base de Datos:** PostgreSQL (Alojada en la nube - Neon)
-- **Autenticación:** JSON Web Tokens (JWT) & Bcrypt para encriptación de contraseñas
+- **Base de Datos:** PostgreSQL (Neon)
+- **Autenticación:** JWT & Bcrypts 
 - **Mensajería / Cola (Message Broker):** Upstash Redis (REST API)
 - **Base de Datos Analítica (OLAP):** MotherDuck (DuckDB Node API v1.5.2-r.1)
-- **Herramientas de desarrollo:** TSX (TypeScript Execute)
+- **Almacenamiento de imágenes:** Cloudinary
 - **Validación:** Zod v4
 - **Documentación:** Swagger / OpenAPI
 - **Despliegue:** Render (CI/CD)
 
+Prerequisitos
+Antes de comenzar, asegurate de tener lo siguiente:
+
+Node.js v24 o superior — Descargar
+npm (incluido con Node.js)
+Git
+Una cuenta en Neon para PostgreSQL en la nube (plan gratuito disponible)
+Una cuenta en Upstash para Redis REST API (plan gratuito disponible)
+Una cuenta en MotherDuck para DuckDB en la nube (plan gratuito disponible)
+Una cuenta en Cloudinary para almacenamiento de imágenes (plan gratuito disponible)
+
 ##  Estructura del Proyecto
 
 \`\`\`text
-├── prisma/           # Esquemas de base de datos (Nomenclatura estándar camelCase)
+backend-innova/
+├── prisma/
+│   ├── schema.prisma          # Modelos de base de datos
+│   ├── migrations/            # Historial de migraciones SQL
+│   └── seed.ts                # Datos iniciales (rubros)
 ├── src/
-│   ├── controllers/  # Capa Web: Parsea peticiones HTTP (req/res) y delega al servicio
-│   ├── lib/          # Instancias Singleton (ej: prisma.ts para evitar fugas de conexión)
-│   ├── middlewares/  # Interceptores: Manejo centralizado de errores, Auth y Rate Limiting
-│   ├── routes/       # Definición de endpoints y enrutamiento modular
-│   ├── services/     # Capa de Negocio: Reglas puras, transacciones ACID y auditoría
-│   ├── types/        # Interfaces y tipos estrictos para TypeScript
-│   ├── schema/       # libreria Zod para validaciones de entrada
-│   ├── app.ts        # Configuración de Express, CORS y Swagger
-│   ├── server.ts     # Punto de entrada de la API (API Server)
-│   └── worker.ts     # Proceso en segundo plano para consumo de telemetría (Data Pipeline)
-├── .env              # Variables de entorno (Ignorado en Git)
-└── package.json      # Dependencias y scripts del proyecto
+│   ├── app.ts                 # Express app: middlewares, rutas, CORS, rate limiting
+│   ├── server.ts              # Punto de entrada del API server
+│   ├── worker.ts              # Pipeline de telemetría (Redis → MotherDuck)
+│   ├── controllers/           # Capa HTTP: parsea req/res, delega a services
+│   ├── services/              # Capa de negocio: lógica, transacciones, validaciones de dominio
+│   ├── middlewares/           # Auth, autorización, validación, errores, uploads
+│   ├── routes/                # Definición de rutas y middleware stack por endpoint
+│   ├── schema/                # Schemas Zod para validación de entradas
+│   ├── types/                 # Interfaces TypeScript por dominio
+│   └── lib/
+│       └── prisma.ts          # Singleton de PrismaClient
+├── swagger.yaml               # Especificación OpenAPI 3.0
+├── render.yaml                # Configuración de deploy en Render
+├── tsconfig.json              # Configuración del compilador TypeScript
+└── package.json
 \`\`\`
 
 ## Configuracion del entorno
@@ -47,17 +65,36 @@ Clona el repositorio.
    \`\`\`
 3. Crea tu archivo `.env` en la raíz con tus credenciales de PostgreSQL y tu clave maestra para JWT:
    \`\`\`env
+   NODE_ENV=development
+   PORT=3000
+   # Copiá la connection string desde el panel de Neon
    DATABASE_URL="tu_url_de_neon_aqui"
+   # Generá una clave secreta fuerte. Ejemplo:
+   # node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    JWT_SECRET="tu_clave_generada_criptograficamente"
+   # Obtenelos desde: Upstash Console → Tu database → REST API
    UPSTASH_REDIS_REST_URL="https://tu-url-upstash.io"
    UPSTASH_REDIS_REST_TOKEN="tu-token-upstash"
+   # Obtenelo desde: app.motherduck.com → Settings → Access Tokens
    MOTHERDUCK_TOKEN="tu-token-motherduck"
+   # Obtenelos desde: Cloudinary Console → Dashboard
+   CLOUDINARY_CLOUD_NAME="tu_cloud_name"
+   CLOUDINARY_API_KEY="tu_api_key"
+   CLOUDINARY_API_SECRET="tu_api_secret"
+   # URL exacta del frontend que va a consumir la API
+   FRONTEND_URL="http://localhost:5173"
    \`\`\`
 4. Sincroniza las tablas en tu base de datos y genera el cliente de Prisma:
    \`\`\`bash
    npx prisma migrate dev
    \`\`\`
-5. Levanta el proyecto. **Debes iniciar ambos procesos para que funcione completo**:
+5. Crear las tablas en la base de datos
+   - Aplica todas las migraciones SQL pendientes a tu base de datos PostgreSQL:
+     npx prisma migrate dev
+6. Cargar datos iniciales (seed)
+   - Precarga los rubros de negocio disponibles para la configuración del bot
+     npm run seed
+7. Levanta el proyecto. **Debes iniciar ambos procesos para que funcione completo**:
    - Para levantar solo la API:
      \`\`\`bash
      npm run dev
@@ -70,6 +107,7 @@ Clona el repositorio.
      \`\`\`bash
      npm start
      \`\`\`
+
 
 ## Módulos Implementados
 ### Autenticación y Gestión de Usuario
