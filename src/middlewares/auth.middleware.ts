@@ -13,6 +13,7 @@ declare global {
   namespace Express {
     interface Request {
       usuario?: TokenPayload;
+      file?: Express.Multer.File;
     }
   }
 }
