@@ -137,7 +137,7 @@ export const iniciarSesion = async (data: LoginInput): Promise<AuthResult> => {
 
   const usuario = await prisma.usuario.findUnique({ 
     where: { email: data.email },
-    select: { id: true, nombre: true, email: true, rubro: true, rol: true, estado: true, password: true },
+    select: { id: true, nombre: true, email: true, rol: true, estado: true, password: true },
   });
 
   if (!usuario) throw new Error('INVALID_CREDENTIALS');
