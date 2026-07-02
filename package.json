@@ -35,11 +35,11 @@
     "swagger-ui-express": "^5.0.1",
     "typescript": "^5.9.3",
     "yamljs": "^0.3.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^26.1.0"
   },
   "devDependencies": {
-    "@types/multer": "^2.2.0",
-    "@types/node": "^26.1.0",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4"
