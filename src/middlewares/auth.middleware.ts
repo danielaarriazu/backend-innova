@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { EstadoUsuario } from '@prisma/client';
+import 'multer';
 
 export interface TokenPayload {
   id: string;
