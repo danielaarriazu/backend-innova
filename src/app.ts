@@ -12,16 +12,13 @@ import productRoutes from './routes/product.routes';
 import telemetryRoutes from './routes/telemetry.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import prisma from './lib/prisma';
+import { corsOptions } from './lib/cors.config';
 
 const app = express();
 
 app.set('trust proxy', 1);
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173' || 'https://chatbot-innova-backend-6388.onrender.com/',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 

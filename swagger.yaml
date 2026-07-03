@@ -14,7 +14,7 @@ title: API de Autenticación, Configuración de Bot y Log de registros - InnovaL
 servers:
   - url: http://localhost:3000
     description: Entorno de desarrollo local
-  - url: https://chatbot-innova-backend.onrender.com
+  - url: https://chatbot-innova-backend-6388.onrender.com
     description: Producción (Render)
 components:
   securitySchemes:
