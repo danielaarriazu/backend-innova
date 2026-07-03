@@ -15,7 +15,10 @@ const app = express();
 app.set('trust proxy', true);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: [
+    'http://localhost:5173', 
+    'https://chatbot-innova-frontend.vercel.app' 
+  ],
   credentials: true
 }));
 
