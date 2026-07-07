@@ -1,14 +1,13 @@
 import type { registerSchema, loginSchema } from '../schema/auth.schema';
-import type { z } from 'zod';
+import { z } from 'zod';
 
-export type RegisterInput = z.infer<typeof registerSchema> & {
-  
-}
+// Se eliminó el "& {}" vacío que era innecesario
+export type RegisterInput = z.infer<typeof registerSchema>;
 
-export type LoginInput = z.infer<typeof loginSchema> &  {
+export type LoginInput = z.infer<typeof loginSchema> & {
   ip?: string;
   dispositivo?: string;
-}
+};
 
 export interface AuthResult {
   token: string;
