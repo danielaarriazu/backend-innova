@@ -28,6 +28,11 @@ export const actualizarConfiguracionBot = async (data: UpdateBotInput) => {
     data: {
       activo: data.activo,
       nombreNegocio: data.nombreNegocio?.trim(),
+      rubroId: data.rubroId,
+      descripcionBreve: data.descripcionBreve?.trim(),
+      horarioAtencion: data.horarioAtencion?.trim(),
+      telefono: data.telefono?.trim(),
+      respuestaDerivacion: data.respuestaDerivacion?.trim(),
       logoUrl: data.logoUrl?.trim(),
       mensajeBienvenida: data.mensajeBienvenida?.trim(),
       mensajeFueraHorario: data.mensajeFueraHorario?.trim(),

@@ -16,8 +16,7 @@ export const cambiarPassword = async (data: ChangePasswordInput): Promise<void> 
     throw new Error('INVALID_CURRENT_PASSWORD');
   }
 
-  const saltRounds = 10;
-  const hashedPassword = await bcryptjs.hash(data.nuevaPassword, saltRounds);
+  const hashedPassword = await bcryptjs.hash(data.nuevaPassword, 10);
 
   await prisma.usuario.update({
     where: { id: data.usuarioId },
@@ -34,22 +33,34 @@ export const cambiarPassword = async (data: ChangePasswordInput): Promise<void> 
 };
 
 export const eliminarCuenta = async (data: DeleteAccountInput): Promise<void> => {
-  const usuario = await prisma.usuario.findUnique({ where: { id: data.usuarioId } });
-  
-  if (!usuario || usuario.estado === EstadoUsuario.ELIMINADO) {
-    throw new Error('USER_NOT_FOUND');
-  }
-
-  await prisma.usuario.update({
+  const usuario = await prisma.usuario.findUnique({
     where: { id: data.usuarioId },
-    data: { estado: EstadoUsuario.ELIMINADO }
+    select: { id: true, password: true, estado: true },
   });
 
-  await registrarActividad(
-    data.usuarioId,
-    'ELIMINACION_CUENTA',
-    'El usuario eliminó su cuenta lógicamente.',
-    data.ip,
-    data.dispositivo
-  );
+  if (!usuario || usuario.estado=== EstadoUsuario.ELIMINADO) {
+    throw new Error('USER_NOT_FOUND');
+  }
+  
+ const passwordValida = await bcryptjs.compare(data.password, usuario.password);
+  if (!passwordValida) {
+    throw new Error('INVALID_PASSWORD');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.usuario.update({
+      where: { id: data.usuarioId },
+      data: { estado: EstadoUsuario.ELIMINADO },
+    });
+ 
+    await tx.registroActividad.create({
+      data: {
+        usuarioId: data.usuarioId,
+        accion: 'ELIMINACION_CUENTA',
+        detalle: 'El usuario eliminó su propia cuenta',
+        ip: data.ip,
+        dispositivo: data.dispositivo,
+      },
+    });
+  });
 };

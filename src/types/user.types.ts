@@ -9,5 +9,6 @@ export interface ChangePasswordInput {
 export interface DeleteAccountInput {
   usuarioId: string;
   ip?: string;
+  password: string;
   dispositivo?: string;
 }

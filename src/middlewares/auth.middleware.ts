@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
+import { EstadoUsuario } from '@prisma/client';
+import 'multer';
 
 export interface TokenPayload {
   id: string;
@@ -11,6 +14,7 @@ declare global {
   namespace Express {
     interface Request {
       usuario?: TokenPayload;
+      file?: Express.Multer.File;
     }
   }
 }
@@ -22,7 +26,7 @@ if (!JWT_SECRET) {
   process.exit(1); 
 }
 
-export const verificarToken = (req: Request, res: Response, next: NextFunction): void => {
+export const verificarToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -35,6 +39,16 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction):
 
     const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
 
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: decoded.id },
+      select: { estado: true },
+    });
+ 
+    if (!usuario || usuario.estado !== EstadoUsuario.ACTIVO) {
+      res.status(401).json({ error: 'Sesión inválida. La cuenta fue eliminada o desactivada.' });
+      return;
+    }
+
     req.usuario = {
       id: decoded.id,
       email: decoded.email,
@@ -44,5 +58,35 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction):
     next();
   } catch (error) {
     res.status(401).json({ error: 'Token inválido o expirado. Por favor, inicie sesión nuevamente.' });
+  }
+};
+
+export const verificarTokenOpcional = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: decoded.id },
+      select: { estado: true },
+    });
+
+    if (usuario && usuario.estado === EstadoUsuario.ACTIVO){
+    req.usuario = {
+      id: decoded.id,
+      email: decoded.email,
+      rol: decoded.rol
+    };
+  }
+
+    next();
+  } catch (error) {
+    next();
   }
 };

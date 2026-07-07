@@ -44,11 +44,15 @@ model ConfiguracionBot {
   // Estado y Datos del Negocio
   activo                Boolean        @default(false)
   nombreNegocio         String?
+  descripcionBreve      String?        @db.Text
+  horarioAtencion       String?
+  telefono              String?
   logoUrl               String?
   
   // Comportamiento del Bot
   mensajeBienvenida     String?        @db.Text
   mensajeFueraHorario   String?        @db.Text
+  respuestaDerivacion   String?        @db.Text
   derivacionAutomatica  Boolean        @default(false)
   
   // historialSesiones
@@ -60,6 +64,16 @@ model ConfiguracionBot {
   faqs                  Faq[]
   productos             Producto[]
   sesiones              SesionChat[]
+  rubroId               String?
+  rubro                 Rubro?         @relation(fields: [rubroId], references: [id])
+}
+
+model Rubro {
+  id          String             @id @default(uuid())
+  nombre      String             @unique
+  activo      Boolean            @default(true)
+  
+  bots        ConfiguracionBot[]
 }
 
 model CategoriaFAQ {
@@ -83,7 +97,7 @@ model Faq {
   
   pregunta            String
   respuesta           String           @db.Text
-  keywords            String?
+  activa      Boolean   @default(true)
   
   fechaCreacion       DateTime         @default(now())
   fechaModificacion   DateTime         @updatedAt
