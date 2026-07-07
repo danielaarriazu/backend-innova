@@ -22,6 +22,8 @@ const SELF_ORIGIN = process.env.RENDER_EXTERNAL_URL
   : [];
  
 const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/;
+
+const NETLIFY_REGEX = /^https:\/\/[a-zA-Z0-9-]+\.netlify\.app$/;
  
 // Cubre además cualquier dominio *.onrender.com, por si el backend cambia de nombre/URL.
 const RENDER_ORIGIN_REGEX = /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/;
@@ -38,6 +40,7 @@ export const corsOptions: CorsOptions = {
     if (
       ALLOWED_ORIGINS.includes(origin) ||
       VERCEL_PREVIEW_REGEX.test(origin) ||
+      NETLIFY_REGEX.test(origin) ||
       RENDER_ORIGIN_REGEX.test(origin)
     ) {
       callback(null, true);
