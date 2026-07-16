@@ -165,3 +165,18 @@ model RegistroActividad {
   dispositivo String?
   fecha       DateTime @default(now())
 }
+
+model EventoTelemetry {
+  id            String   @id @default(uuid())
+  botId         String?
+  sessionId     String
+  tipoUsuario   String   @default("ANONIMO") // Posibles valores: ANONIMO, EMPRENDEDOR, CLIENTE
+  usuarioId     String?   
+  ip            String   @default("desconocida")
+  dispositivo   String   @default("desconocido")
+  fechaServidor DateTime
+  eventos       Json     
+  fechaCreacion DateTime @default(now())
+
+  @@map("eventos_telemetry") 
+}
