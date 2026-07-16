@@ -21,8 +21,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const ip = req.ip || req.socket.remoteAddress;
-    const dispositivo = req.headers['user-agent'];
+    const ip = req.ip || req.socket.remoteAddress || 'IP Desconocida';
+    const dispositivo = req.headers['user-agent']|| 'Dispositivo Desconocido';
 
     const resultado = await authService.iniciarSesion({ ...req.body, ip, dispositivo });
 
