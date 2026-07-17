@@ -13,6 +13,15 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       req.body.urlImagen = req.file.path;
     }
 
+    if (req.body.activo === 'true') req.body.activo = true;
+    if (req.body.activo === 'false') req.body.activo = false;
+
+    if (!req.body.stock || req.body.stock === 'null' || req.body.stock === 'undefined') {
+      req.body.stock = 0;
+    } else {
+      req.body.stock = Number(req.body.stock);
+    }
+
     const producto = await productService.crearProducto({
       usuarioId: req.usuario!.id,
       ...req.body,

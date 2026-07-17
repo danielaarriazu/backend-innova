@@ -1354,19 +1354,23 @@ paths:
         '404':
           description: FAQ no encontrada o ya eliminada
  
-  # ==========================================================================
+ # ==========================================================================
   # PRODUCTOS
   # ==========================================================================
   /api/products:
     post:
       tags: [Productos]
-      summary: Crear un producto
+      summary: Crear un producto o servicio
       description: |
-        Agrega un producto al catálogo del bot.
+        Agrega un producto o servicio al catálogo del bot.
 
         Soporta dos modos:
         - **JSON puro (`application/json`):** sin imagen, enviar `urlImagen` como string de URL si se desea.
         - **Con imagen (`multipart/form-data`):** usar el campo `imagen` (JPG/PNG/WEBP, máx 5MB). La imagen se sube automáticamente a Cloudinary.
+
+        **Lógica de Precios (A convenir):**
+        - Si `requiereCotizacion` es `true`, el `precio` puede enviarse como `0` o vacío.
+        - Si `requiereCotizacion` es `false` (por defecto), es obligatorio enviar un `precio` mayor a `0`.
 
         Registra la acción en `RegistroActividad`.
       security:
@@ -1378,19 +1382,24 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [nombre, precio]
+              required: [nombre]
               properties:
                 nombre:
                   type: string
-                  example: "Remera básica manga corta"
+                  example: "Instalación Eléctrica"
                 descripcion:
                   type: string
+                requiereCotizacion:
+                  type: boolean
+                  description: "Si es true, el precio puede ser 0 (A convenir)."
+                  example: true
                 precio:
                   type: number
-                  example: 8500
+                  description: "Obligatorio y mayor a 0 si requiereCotizacion es false."
+                  example: 0
                 stock:
                   type: integer
-                  example: 50
+                  example: 0
                 activo:
                   type: boolean
                 imagen:
@@ -1401,7 +1410,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [nombre, precio]
+              required: [nombre]
               properties:
                 nombre:
                   type: string
@@ -1411,8 +1420,13 @@ paths:
                   type: string
                   maxLength: 2000
                   example: "100% algodón peinado. Disponible en talles S a XL."
+                requiereCotizacion:
+                  type: boolean
+                  default: false
+                  example: false
                 precio:
                   type: number
+                  description: "Obligatorio y mayor a 0 si requiereCotizacion es false."
                   example: 8500.00
                 stock:
                   type: integer
@@ -1438,16 +1452,17 @@ paths:
                 producto:
                   id: "e5f6a7b8-c9d0-1234-abcd-567890123456"
                   nombre: "Remera básica manga corta"
+                  requiereCotizacion: false
                   precio: "8500.00"
                   stock: 50
                   activo: true
- 
+
     get:
       tags: [Productos]
       summary: Listar productos con filtros y paginación
       description: |
         Devuelve el catálogo de productos del bot del usuario autenticado.
- 
+
         Soporta búsqueda por nombre y filtrado por estado.
       security:
         - bearerAuth: []
@@ -1499,6 +1514,7 @@ paths:
                     - id: "e5f6a7b8-c9d0-1234-abcd-567890123456"
                       nombre: "Remera básica manga corta"
                       descripcion: "100% algodón. Talles S a XL."
+                      requiereCotizacion: false
                       precio: "8500.00"
                       stock: 50
                       urlImagen: null
@@ -1509,7 +1525,7 @@ paths:
                   totalPaginas: 1
         '401':
           description: No autenticado
- 
+
   /api/products/{id}:
     put:
       tags: [Productos]
@@ -1538,6 +1554,7 @@ paths:
               properties:
                 nombre: { type: string }
                 descripcion: { type: string }
+                requiereCotizacion: { type: boolean }
                 precio: { type: number }
                 stock: { type: integer }
                 activo: { type: boolean }
@@ -1552,6 +1569,7 @@ paths:
               properties:
                 nombre: { type: string, maxLength: 200 }
                 descripcion: { type: string, maxLength: 2000, nullable: true }
+                requiereCotizacion: { type: boolean }
                 precio: { type: number }
                 stock: { type: integer, minimum: 0 }
                 urlImagen: { type: string, format: uri, nullable: true }
@@ -1566,6 +1584,7 @@ paths:
                 producto:
                   id: "e5f6a7b8-c9d0-1234-abcd-567890123456"
                   nombre: "Remera básica manga corta"
+                  requiereCotizacion: false
                   precio: "9200.00"
                   stock: 25
                   activo: true
@@ -1575,15 +1594,15 @@ paths:
           description: No autenticado
         '404':
           description: Producto no encontrado
- 
+
     delete:
       tags: [Productos]
       summary: Eliminar un producto
       description: |
         Elimina permanentemente un producto del catálogo. **Hard delete — no se puede recuperar.**
- 
+
         La imagen en Cloudinary no se elimina automáticamente (mejora pendiente).
- 
+
         Registra la acción en `RegistroActividad`.
       security:
         - bearerAuth: []

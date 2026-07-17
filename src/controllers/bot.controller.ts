@@ -51,6 +51,11 @@ export const actualizarConfig = async (req: Request, res: Response) => {
       req.body.logoUrl = req.file.path;
     }
 
+    if (req.body.activo === 'true') req.body.activo = true;
+    if (req.body.activo === 'false') req.body.activo = false;
+    if (req.body.derivacionAutomatica === 'true') req.body.derivacionAutomatica = true;
+    if (req.body.derivacionAutomatica === 'false') req.body.derivacionAutomatica = false;
+
     const configActualizada = await botService.actualizarConfiguracionBot({
       usuarioId: req.usuario!.id,
       ...req.body,
