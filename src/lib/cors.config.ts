@@ -31,7 +31,7 @@ const RENDER_ORIGIN_REGEX = /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/;
 const ALLOWED_ORIGINS = [...new Set([...DEV_ORIGINS, ...ENV_ORIGINS, ...SELF_ORIGIN])];
  
 export const corsOptions: CorsOptions = {
-  origin(origin, callback) {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (!origin) {
       callback(null, true);
       return;
