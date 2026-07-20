@@ -1916,3 +1916,315 @@ paths:
               example:
                 success: false
                 error: "Negocio no encontrado."
+
+  # ==========================================================================
+  # INTERACCIÓN DEL CHATBOT (WIDGET PÚBLICO)
+  # ==========================================================================
+
+  /api/public/chatbot/{slug}/init:
+    get:
+      tags: [Público]
+      summary: "Inicializar el chatbot y obtener menú principal"
+      description: |
+        Endpoint que se llama automáticamente cuando el cliente abre el widget del chatbot.
+        Devuelve el saludo inicial configurado por el emprendedor y la lista de botones disponibles.
+      parameters:
+        - name: "slug"
+          in: "path"
+          required: true
+          description: "El slug único del negocio"
+          schema:
+            type: "string"
+            example: "la-tienda-de-dani"
+      responses:
+        '200':
+          description: "Inicialización exitosa con menú de opciones"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      botId: { type: string, format: uuid }
+                      nombre: { type: string }
+                      mensajeBienvenida: { type: string }
+                      botonesMenu:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            texto: { type: string }
+                            accion: { type: string }
+              example:
+                success: true
+                data:
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+                  nombre: "La Tienda de dani"
+                  mensajeBienvenida: "¡Bienvenida a La Tienda de dani! ¿En qué te ayudo?"
+                  botonesMenu:
+                    - id: "btn_catalogo"
+                      texto: "Ver Catálogo"
+                      accion: "MOSTRAR_CATALOGO"
+                    - id: "btn_horarios"
+                      texto: "Horarios de Atención"
+                      accion: "MOSTRAR_HORARIOS"
+                    - id: "btn_faqs"
+                      texto: "Preguntas Frecuentes"
+                      accion: "MOSTRAR_FAQS"
+                    - id: "btn_atencion"
+                      texto: "Atención Personalizada"
+                      accion: "DERIVAR_HUMANO"
+        '404':
+          description: "Negocio no encontrado"
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Negocio no encontrado."
+
+  /api/chatbot/chat:
+    post:
+      tags: [Público]
+      summary: "Ejecutar acción o enviar mensaje al bot"
+      description: |
+        Procesa las interacciones del cliente con el widget. 
+        Puede recibir una `accion` (cuando el usuario hace clic en un botón del menú), 
+        un `mensaje` (si el usuario escribe su nombre y telefono cuando se le solicita), o manejar flujos de múltiples 
+        pasos (como solicitar un presupuesto o derivar a un humano).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, botId]
+              properties:
+                accion:
+                  type: string
+                  description: "Acción seleccionada desde los botones del widget o fase del flujo."
+                  enum: [MOSTRAR_CATALOGO, MOSTRAR_HORARIOS, MOSTRAR_FAQS, DERIVAR_HUMANO, SOLICITAR_PRESUPUESTO, ENVIAR_DATOS]
+                mensaje:
+                  type: string
+                  description: "Texto escrito por el cliente (si aplica)."
+                contexto:
+                  type: string
+                  description: "Estado actual de la conversación. Fundamental para flujos de múltiples pasos."
+                datosCliente:
+                  type: object
+                  description: "Datos enviados por el cliente (texto ingresado, carrito de compras, datos acumulados, etc.)."
+                sessionId:
+                  type: string
+                  description: "ID de sesión del cliente en el frontend."
+                botId:
+                  type: string
+                  format: uuid
+                  description: "ID del bot obtenido previamente en el /init."
+            examples:
+              clic_catalogo:
+                summary: "Menú: Clic en 'Ver Catálogo'"
+                value:
+                  accion: "MOSTRAR_CATALOGO"
+                  sessionId: "sesion-cliente-1"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+              clic_horarios:
+                summary: "Menú: Clic en 'Horarios'"
+                value:
+                  accion: "MOSTRAR_HORARIOS"
+                  sessionId: "sesion-cliente-1"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+              clic_faqs:
+                summary: "Menú: Clic en 'Preguntas Frecuentes'"
+                value:
+                  accion: "MOSTRAR_FAQS"
+                  sessionId: "sesion-cliente-1"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+              flujo_presupuesto_1:
+                summary: "Presupuesto 1: Enviar carrito"
+                value:
+                  accion: "SOLICITAR_PRESUPUESTO"
+                  sessionId: "sesion-prueba-1"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+                  datosCliente:
+                    items:
+                      - nombre: "Instalación Eléctrica"
+                        cantidad: "1"
+                        precio: "0"
+                      - nombre: "Remera básica manga corta"
+                        cantidad: "10"
+                        precio: "8500"
+              flujo_presupuesto_2:
+                summary: "Presupuesto 2: Enviar nombre"
+                value:
+                  accion: "ENVIAR_DATOS"
+                  sessionId: "sesion-prueba-1"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+                  contexto: "ESPERANDO_NOMBRE_PRESUPUESTO"
+                  datosCliente:
+                    texto: "Daniela"
+                    datosAcumulados:
+                      carrito:
+                        - nombre: "Instalación Eléctrica"
+                          cantidad: "1"
+                          precio: "0"
+                        - nombre: "Remera básica manga corta"
+                          cantidad: "10"
+                          precio: "8500"
+              flujo_presupuesto_3:
+                summary: "Presupuesto 3: Enviar teléfono"
+                value:
+                  accion: "ENVIAR_DATOS"
+                  sessionId: "sesion-prueba-1"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+                  contexto: "ESPERANDO_TELEFONO_PRESUPUESTO"
+                  datosCliente:
+                    texto: "2645556677"
+                    datosAcumulados:
+                      nombre: "Daniela"
+                      carrito:
+                        - nombre: "Remera básica manga corta"
+                          cantidad: "10"
+                          precio: "8500"
+              flujo_derivacion_1:
+                summary: "Derivación 1: Iniciar"
+                value:
+                  accion: "DERIVAR_HUMANO"
+                  sessionId: "sesion-prueba-123"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+              flujo_derivacion_2:
+                summary: "Derivación 2: Enviar nombre"
+                value:
+                  accion: "ENVIAR_DATOS"
+                  sessionId: "sesion-prueba-123"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+                  contexto: "ESPERANDO_NOMBRE_DERIVAR_HUMANO"
+                  datosCliente:
+                    texto: "Daniela"
+              flujo_derivacion_3:
+                summary: "Derivación 3: Enviar teléfono"
+                value:
+                  accion: "ENVIAR_DATOS"
+                  sessionId: "sesion-prueba-123"
+                  botId: "d735f3c1-930d-43b9-a4df-c2cc64d486bb"
+                  contexto: "ESPERANDO_TELEFONO_DERIVAR_HUMANO"
+                  datosCliente:
+                    texto: "1123456789"
+                    datosAcumulados:
+                      nombre: "Daniela"
+      responses:
+        '200':
+          description: "Respuesta del bot según la acción solicitada"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  respuesta: { type: string }
+                  derivarHumano: { type: boolean, default: false }
+                  datosExtra: 
+                    type: object
+                    description: "Datos adicionales (ej. lista de productos si la acción fue MOSTRAR_CATALOGO)"
+                  botones: 
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        texto: { type: string }
+                        accion: { type: string }
+                  requiereInput: { type: boolean }
+                  contexto: { type: string }
+                  datosAcumulados: { type: object }
+              examples:
+                respuesta_catalogo:
+                  summary: "Respuesta a MOSTRAR_CATALOGO"
+                  value:
+                    success: true
+                    respuesta: "Aquí tienes nuestro catálogo:"
+                    derivarHumano: false
+                    datosExtra:
+                      productos:
+                        - nombre: "Remera Básica"
+                          precio: 8500
+                respuesta_horarios:
+                  summary: "Respuesta a MOSTRAR_HORARIOS"
+                  value:
+                    success: true
+                    respuesta: "Nuestro horario de atención es de Lunes a Viernes de 9 a 18hs."
+                    derivarHumano: false
+                respuesta_faqs:
+                  summary: "Respuesta a MOSTRAR_FAQS"
+                  value:
+                    success: true
+                    respuesta: "Acá tenés las respuestas a las preguntas más comunes:\n1. ¿Hacen envíos? Sí, enviamos a todo el país.\n2. ¿Qué medios de pago aceptan? Aceptamos transferencias y tarjetas."
+                    derivarHumano: false
+                res_presupuesto_1:
+                  summary: "Presupuesto 1: Pide Nombre"
+                  value:
+                    respuesta: "¡Excelente elección! Para poder armar tu presupuesto, por favor escribime tu *Nombre*."
+                    botones: []
+                    requiereInput: true
+                    contexto: "ESPERANDO_NOMBRE_PRESUPUESTO"
+                    datosAcumulados:
+                      carrito:
+                        - nombre: "Instalación Eléctrica"
+                          cantidad: "1"
+                          precio: "0"
+                        - nombre: "Remera básica manga corta"
+                          cantidad: "10"
+                          precio: "8500"
+                res_presupuesto_2:
+                  summary: "Presupuesto 2: Pide Teléfono"
+                  value:
+                    respuesta: "¡Un gusto, Daniela! Para terminar de armar tu presupuesto, ¿me podrías indicar un teléfono de contacto?"
+                    botones: []
+                    requiereInput: true
+                    contexto: "ESPERANDO_TELEFONO_PRESUPUESTO"
+                    datosAcumulados:
+                      carrito:
+                        - nombre: "Remera básica manga corta"
+                          cantidad: "10"
+                          precio: "8500"
+                      nombre: "Daniela"
+                res_presupuesto_3:
+                  summary: "Presupuesto 3: Finalizado"
+                  value:
+                    respuesta: "¡Excelente Daniela! Tu presupuesto estimado es de $85000. Ya registramos tu pedido y el equipo se contactará al 2645556677 para coordinar los detalles."
+                    botones:
+                      - id: "btn_volver"
+                        texto: "Volver al menú"
+                        accion: "VOLVER_MENU"
+                    requiereInput: false
+                    contexto: "FINALIZADO"
+                res_derivacion_1:
+                  summary: "Derivación 1: Pide Nombre"
+                  value:
+                    respuesta: "Para derivar tu consulta a un representante, por favor decime tu *Nombre*."
+                    botones: []
+                    requiereInput: true
+                    contexto: "ESPERANDO_NOMBRE_DERIVAR_HUMANO"
+                res_derivacion_2:
+                  summary: "Derivación 2: Pide Teléfono"
+                  value:
+                    respuesta: "¡Un gusto, Daniela! Para terminar de armar tu derivación, ¿me podrías indicar un teléfono de contacto?"
+                    botones: []
+                    requiereInput: true
+                    contexto: "ESPERANDO_TELEFONO_DERIVAR_HUMANO"
+                    datosAcumulados:
+                      nombre: "Daniela"
+                res_derivacion_3:
+                  summary: "Derivación 3: Finalizada"
+                  value:
+                    respuesta: "¡Listo Daniela! Tu consulta fue enviada a nuestro equipo. Nos contactaremos al 1123456789."
+                    botones:
+                      - id: "btn_volver"
+                        texto: "Volver al menú"
+                        accion: "VOLVER_MENU"
+                    requiereInput: false
+                    contexto: "FINALIZADO"
+        '400':
+          description: "Faltan datos requeridos (botId o sessionId)"

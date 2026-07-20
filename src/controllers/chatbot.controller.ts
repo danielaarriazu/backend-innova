@@ -3,14 +3,14 @@ import { procesarAccionBot } from '../services/chatbot.service';
  
 export const chat = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { accion, sessionId, botId, datosCliente, contextoActual } = req.body;
+    const { accion, sessionId, botId, datosCliente, contexto} = req.body;
  
     if (!accion || !sessionId || !botId) {
       res.status(400).json({ error: 'Faltan parámetros: accion, sessionId, botId' });
       return;
     }
  
-    const resultado = await procesarAccionBot(accion, sessionId, botId, datosCliente, contextoActual);
+    const resultado = await procesarAccionBot(accion, sessionId, botId, datosCliente, contexto);
     res.status(200).json(resultado);
  
   } catch (err: unknown) {
