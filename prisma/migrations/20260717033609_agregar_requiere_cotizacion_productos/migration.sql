@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Producto" ADD COLUMN     "requiereCotizacion" BOOLEAN NOT NULL DEFAULT false,
+ALTER COLUMN "precio" SET DEFAULT 0,
+ALTER COLUMN "precio" SET DATA TYPE DECIMAL(65,30);

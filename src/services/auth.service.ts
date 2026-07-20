@@ -135,6 +135,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
 };
 
 export const iniciarSesion = async (data: LoginInput): Promise<AuthResult> => {
+  if (!data.email) throw new Error('EMAIL_REQUIRED');
   if (!data.password) throw new Error('PASSWORD_REQUIRED');
 
   const usuario = await prisma.usuario.findUnique({ 

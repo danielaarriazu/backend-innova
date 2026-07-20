@@ -61,7 +61,11 @@ export const verificarToken = async (req: Request, res: Response, next: NextFunc
   }
 };
 
-export const verificarTokenOpcional = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export interface AuthRequest extends Request {
+  usuarioId?: number;
+}
+
+export const verificarTokenOpcional = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -84,7 +88,11 @@ export const verificarTokenOpcional = async (req: Request, res: Response, next: 
       rol: decoded.rol
     };
   }
-
+  const queryUsuarioId = req.query.usuarioId as string;
+  
+  if (queryUsuarioId && !isNaN(parseInt(queryUsuarioId))) {
+    req.usuarioId = parseInt(queryUsuarioId);
+  }
     next();
   } catch (error) {
     next();

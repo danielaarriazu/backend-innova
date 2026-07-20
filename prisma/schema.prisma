@@ -13,128 +13,132 @@ datasource db {
 }
 
 model Usuario {
-  id               String              @id @default(uuid())
-  nombre           String
-  email            String              @unique
-  password         String
-  rol              Rol                 @default(EMPRENDEDOR)
-  estado           EstadoUsuario       @default(ACTIVO)
-  fechaRegistro    DateTime            @default(now())
-  ultimaSesion     DateTime?         
-  
-  bot              ConfiguracionBot? 
-  historialSesiones HistorialSesion[] 
-  actividades      RegistroActividad[]
+  id            String        @id @default(uuid())
+  nombre        String
+  email         String        @unique
+  password      String
+  rol           Rol           @default(EMPRENDEDOR)
+  estado        EstadoUsuario @default(ACTIVO)
+  fechaRegistro DateTime      @default(now())
+  ultimaSesion  DateTime?
+
+  bot               ConfiguracionBot?
+  historialSesiones HistorialSesion[]
+  actividades       RegistroActividad[]
+  Consulta          Consulta?           @relation(fields: [consultaId], references: [id])
+  consultaId        String?
 }
 
 model HistorialSesion {
-  id           String   @id @default(uuid())
-  usuarioId    String
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  fechaLogin   DateTime @default(now())
-  dispositivo  String?
-  ip           String?
+  id          String   @id @default(uuid())
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  fechaLogin  DateTime @default(now())
+  dispositivo String?
+  ip          String?
 }
 
 model ConfiguracionBot {
-  id                    String         @id @default(uuid())
-  usuarioId             String         @unique
-  usuario               Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  
+  id        String  @id @default(uuid())
+  usuarioId String  @unique
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
   // Estado y Datos del Negocio
-  activo                Boolean        @default(false)
-  nombreNegocio         String?
-  descripcionBreve      String?        @db.Text
-  horarioAtencion       String?
-  telefono              String?
-  logoUrl               String?
-  
+  activo           Boolean @default(false)
+  nombreNegocio    String?
+  descripcionBreve String? @db.Text
+  horarioAtencion  String?
+  telefono         String?
+  logoUrl          String?
+
   // Comportamiento del Bot
-  mensajeBienvenida     String?        @db.Text
-  mensajeFueraHorario   String?        @db.Text
-  respuestaDerivacion   String?        @db.Text
-  derivacionAutomatica  Boolean        @default(false)
-  slug                  String?        @unique
-  
+  mensajeBienvenida    String? @db.Text
+  mensajeFueraHorario  String? @db.Text
+  respuestaDerivacion  String? @db.Text
+  derivacionAutomatica Boolean @default(false)
+  slug                 String? @unique
+
   // historialSesiones
-  fechaCreacion         DateTime       @default(now())
-  fechaActualizacion    DateTime       @updatedAt
+  fechaCreacion      DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
 
   // Relaciones
-  categoriasFAQ         CategoriaFAQ[]
-  faqs                  Faq[]
-  productos             Producto[]
-  sesiones              SesionChat[]
-  rubroId               String?
-  rubro                 Rubro?         @relation(fields: [rubroId], references: [id])
+  categoriasFAQ CategoriaFAQ[]
+  faqs          Faq[]
+  productos     Producto[]
+  sesiones      SesionChat[]
+  rubroId       String?
+  rubro         Rubro?         @relation(fields: [rubroId], references: [id])
+  Consulta      Consulta[]
 }
 
 model Rubro {
-  id          String             @id @default(uuid())
-  nombre      String             @unique
-  activo      Boolean            @default(true)
-  
-  bots        ConfiguracionBot[]
+  id     String  @id @default(uuid())
+  nombre String  @unique
+  activo Boolean @default(true)
+
+  bots ConfiguracionBot[]
 }
 
 model CategoriaFAQ {
-  id              String           @id @default(uuid())
-  botId           String
-  bot             ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
-  nombre          String           
-  
-  faqs            Faq[]            
-  
-  fechaCreacion   DateTime         @default(now())
+  id     String           @id @default(uuid())
+  botId  String
+  bot    ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  nombre String
+
+  faqs Faq[]
+
+  fechaCreacion DateTime @default(now())
 }
 
 model Faq {
-  id                  String           @id @default(uuid())
-  botId               String
-  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
-  
-  categoriaId         String
-  categoria           CategoriaFAQ     @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
-  
-  pregunta            String
-  respuesta           String           @db.Text
-  activa      Boolean   @default(true)
-  
-  fechaCreacion       DateTime         @default(now())
-  fechaModificacion   DateTime         @updatedAt
+  id    String           @id @default(uuid())
+  botId String
+  bot   ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  categoriaId String
+  categoria   CategoriaFAQ @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+
+  pregunta  String
+  respuesta String  @db.Text
+  activa    Boolean @default(true)
+
+  fechaCreacion     DateTime @default(now())
+  fechaModificacion DateTime @updatedAt
 }
 
 model Producto {
-  id                  String           @id @default(uuid())
-  botId               String
-  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
-  
-  nombre              String
-  descripcion         String?          @db.Text
-  precio              Decimal          @db.Decimal(10, 2)
-  stock               Int              @default(0)
-  urlImagen           String?
-  activo              Boolean          @default(true) 
-  
-  fechaCreacion       DateTime         @default(now())
-  fechaActualizacion  DateTime         @updatedAt
+  id    String           @id @default(uuid())
+  botId String
+  bot   ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  nombre      String
+  descripcion String? @db.Text
+  precio             Decimal  @default(0)
+  requiereCotizacion Boolean  @default(false)
+  stock       Int     @default(0)
+  urlImagen   String?
+  activo      Boolean @default(true)
+
+  fechaCreacion      DateTime           @default(now())
+  fechaActualizacion DateTime           @updatedAt
+  consultas          ConsultaProducto[]
 }
 
 model SesionChat {
-  id                  String           @id @default(uuid())
-  botId               String
-  bot                 ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
-  
-  numeroCliente       String           
-  estado              EstadoChat       @default(BOT_ACTIVO)
-  
-  fechaCreacion       DateTime         @default(now())
-  fechaActualizacion  DateTime         @updatedAt
+  id    String           @id @default(uuid())
+  botId String
+  bot   ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  numeroCliente String
+  estado        EstadoChat @default(BOT_ACTIVO)
+
+  fechaCreacion      DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
 
   // Se actualizó aquí también a botId y numeroCliente
-  @@unique([botId, numeroCliente]) 
+  @@unique([botId, numeroCliente])
 }
-
 
 // Distintos roles que se maneja actualmente
 enum Rol {
@@ -155,13 +159,99 @@ enum EstadoChat {
   HUMANO_ATENDIENDO
 }
 
+enum EstadoConsulta {
+  NUEVA
+  EN_PROCESO
+  RESUELTA
+  CERRADA
+}
+
+enum CerradaPor {
+  BOT
+  ADMIN
+  EMPRENDEDOR
+  CLIENTE
+}
+
 model RegistroActividad {
   id          String   @id @default(uuid())
   usuarioId   String
   usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  accion      String   
-  detalle     String   @db.Text 
+  accion      String
+  detalle     String   @db.Text
   ip          String?
   dispositivo String?
   fecha       DateTime @default(now())
+}
+
+model EventoTelemetry {
+  id            String   @id @default(uuid())
+  botId         String?
+  sessionId     String
+  tipoUsuario   String   @default("ANONIMO") // Posibles valores: ANONIMO, EMPRENDEDOR, CLIENTE
+  usuarioId     String?
+  ip            String   @default("desconocida")
+  dispositivo   String   @default("desconocido")
+  fechaServidor DateTime
+  eventos       Json
+  fechaCreacion DateTime @default(now())
+
+  @@map("eventos_telemetry")
+}
+
+// 4. CONSULTA — núcleo del sistema, registra cada interacción
+model Consulta {
+  id                 String             @id @default(uuid())
+  botId              String
+  bot                ConfiguracionBot   @relation(fields: [botId], references: [id], onDelete: Cascade)
+  sessionAnonimaId   String?
+  clienteNombre      String?
+  clienteTelefono    String?
+  estado             EstadoConsulta     @default(NUEVA)
+  derivada           Boolean            @default(false)
+  cerradaPor         CerradaPor?
+  tipoConsulta       String?
+  prioridad          String?
+  canal              String             @default("web")
+  asunto             String?
+  descripcion        String?            @db.Text
+  derivadaA          String?
+  fechaCreacion      DateTime           @default(now())
+  fechaActualizacion DateTime           @updatedAt
+  fechaCierre        DateTime?
+  mensajes           Mensaje[]
+  productos          ConsultaProducto[]
+  Usuario            Usuario[]
+
+  @@index([botId, fechaActualizacion])
+  @@index([sessionAnonimaId])
+}
+
+model Mensaje {
+  id                 String    @id @default(uuid())
+  consultaId         String
+  consulta           Consulta  @relation(fields: [consultaId], references: [id], onDelete: Cascade)
+  mensajePadreId     String?
+  mensajePadre       Mensaje?  @relation("MensajeHilo", fields: [mensajePadreId], references: [id])
+  respuestas         Mensaje[] @relation("MensajeHilo")
+  emisor             String
+  contenido          String    @db.Text
+  tipoMensaje        String?   @default("texto")
+  leido              Boolean   @default(false)
+  fechaCreacion      DateTime  @default(now())
+  fechaActualizacion DateTime  @updatedAt
+
+  @@index([consultaId, fechaCreacion])
+}
+
+model ConsultaProducto {
+  id         String   @id @default(uuid())
+  consultaId String
+  consulta   Consulta @relation(fields: [consultaId], references: [id], onDelete: Cascade)
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  cantidad   Int      @default(1)
+  fecha      DateTime @default(now())
+
+  @@unique([consultaId, productoId])
 }

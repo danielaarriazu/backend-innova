@@ -1,25 +1,28 @@
 import { Redis } from '@upstash/redis';
-import { DuckDBInstance, DuckDBConnection } from '@duckdb/node-api';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const token = process.env.MOTHERDUCK_TOKEN;
-if (!token) {
-  console.error('❌ ERROR: MOTHERDUCK_TOKEN no definido en .env');
-  process.exit(1);
-}
-
+// 1. Validaciones de variables de entorno
 if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
   console.error('❌ ERROR: Variables de Redis no definidas en .env');
   process.exit(1);
 }
 
+if (!process.env.DATABASE_URL) {
+  console.error('❌ ERROR: DATABASE_URL para Prisma no definida en .env');
+  process.exit(1);
+}
+
 const REDIS_KEY = 'telemetria-eventos';
 
+// 2. Esquema Zod de eventos en Redis
 const redisEventoSchema = z.object({
+  botId:         z.string().optional(),
   sessionId:     z.string().min(1).max(200),
+  tipoUsuario:   z.string().optional(),
   usuarioId:     z.string().optional(),
   ip:            z.string().optional(),
   dispositivo:   z.string().optional(),
@@ -28,38 +31,39 @@ const redisEventoSchema = z.object({
 });
 
 type RedisEvento = z.infer<typeof redisEventoSchema>;
+
+// 3. Inicialización de clientes
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL as string,
   token: process.env.UPSTASH_REDIS_REST_TOKEN as string,
 });
 
-let conn: DuckDBConnection | null = null;
+const prisma = new PrismaClient();
 
-async function iniciarBaseDeDatos() {
-  console.log('Conectando a MotherDuck...');
+let isRunning = false;
+let shutdownRequested = false;
+
+async function iniciarWorker() {
+  console.log('Conectando a la base de datos con Prisma...');
   try {
-    const instance = await DuckDBInstance.create('md:my_db', {
-      motherduck_token: token as string,
-    });
-    conn = await instance.connect();
-    console.log('Conexión a MotherDuck establecida.');
+    // Verificamos conexión a la BD
+    await prisma.$connect();
+    console.log('Conexión a la base de datos establecida con éxito.');
     console.log('Worker de telemetría iniciado.');
 
+    // Ejecutar inmediatamente y programar intervalo
     procesarMensajes();
     setInterval(() => {
-      if (!isRunning) procesarMensajes(); 
+      if (!isRunning && !shutdownRequested) procesarMensajes();
     }, 10000);
   } catch (error) {
-    console.error('Error crítico al inicializar MotherDuck:', error);
+    console.error('Error crítico al inicializar la conexión con Prisma:', error);
     process.exit(1);
   }
 }
 
-let isRunning = false;       
-let shutdownRequested = false;
-
 async function procesarMensajes() {
-  if (!conn || isRunning) return;
+  if (isRunning) return;
 
   isRunning = true;
 
@@ -67,13 +71,13 @@ async function procesarMensajes() {
     let raw = await redis.rpop(REDIS_KEY);
 
     while (raw && !shutdownRequested) {
-      // 1. Validar el payload antes de tocarlo
+      // 1. Validar el payload antes de procesar
       const parseResult = redisEventoSchema.safeParse(raw);
 
       if (!parseResult.success) {
         console.error('[WORKER] Evento malformado descartado:', JSON.stringify(raw));
         console.error('[WORKER] Errores de validación:', parseResult.error.issues);
-        // Descartamos y seguimos — no reencolar basura
+        // Descartar y continuar
         raw = await redis.rpop(REDIS_KEY);
         continue;
       }
@@ -81,27 +85,27 @@ async function procesarMensajes() {
       const evento: RedisEvento = parseResult.data;
       console.log(`[WORKER] Procesando sesión: ${evento.sessionId}`);
 
-      const query = `
-        INSERT INTO my_db.eventos_frontend (sessionId, usuarioId, ip, dispositivo, fechaServidor, eventos)
-        VALUES ($1, $2, $3, $4, CAST($5 AS TIMESTAMP), CAST($6 AS JSON))
-      `;
-
       try {
-        const stmt = await conn.prepare(query);
+        // 2. Inserción usando Prisma
+        await prisma.eventoTelemetry.create({
+          data: {
+            botId: evento.botId ?? null,
+            sessionId: evento.sessionId,
+            tipoUsuario: evento.tipoUsuario ?? 'ANONIMO',
+            usuarioId: evento.usuarioId ?? null,
+            ip: evento.ip ?? 'desconocida',
+            dispositivo: evento.dispositivo ?? 'desconocido',
+            fechaServidor: new Date(evento.fechaServidor),
+            // Prisma maneja objetos/arrays de JS directamente en campos tipo Json
+            eventos: evento.eventos as Prisma.InputJsonArray,
+          },
+        });
 
-        stmt.bindVarchar(1, evento.sessionId);
-        stmt.bindVarchar(2, evento.usuarioId  ?? 'anonimo');
-        stmt.bindVarchar(3, evento.ip         ?? 'desconocida');
-        stmt.bindVarchar(4, evento.dispositivo ?? 'desconocido');
-        stmt.bindVarchar(5, evento.fechaServidor);
-        stmt.bindVarchar(6, JSON.stringify(evento.eventos));
-
-        await stmt.run();
-
-        console.log('[WORKER] Evento insertado en MotherDuck.');
+        console.log('[WORKER] Evento insertado en la base de datos.');
       } catch (dbError: any) {
-        console.error('[WORKER] Error insertando en MotherDuck:', dbError.message);
-        await redis.lpush(REDIS_KEY, evento);
+        console.error('[WORKER] Error insertando en la base de datos:', dbError.message);
+        // Reencolar el evento en caso de fallo en BD
+        await redis.lpush(REDIS_KEY, raw);
         break;
       }
 
@@ -113,28 +117,29 @@ async function procesarMensajes() {
     isRunning = false;
   }
 }
-function manejarApagado(señal: string) {
+
+async function manejarApagado(señal: string) {
   console.log(`[WORKER] ${señal} recibido. Esperando mensaje en curso antes de cerrar...`);
   shutdownRequested = true;
 
-  // Esperamos hasta 15s a que isRunning quede en false, luego salimos igual
-  const timeout = setTimeout(() => {
+  const timeout = setTimeout(async () => {
     console.log('[WORKER] Timeout de apagado. Cerrando forzosamente.');
+    await prisma.$disconnect();
     process.exit(0);
   }, 15_000);
 
-  const intervalo = setInterval(() => {
+  const intervalo = setInterval(async () => {
     if (!isRunning) {
       clearTimeout(timeout);
       clearInterval(intervalo);
-      console.log('[WORKER] Apagado limpio. Hasta luego.');
+      await prisma.$disconnect();
+      console.log('[WORKER] Conexión a Prisma cerrada. Apagado limpio. Hasta luego.');
       process.exit(0);
     }
   }, 200);
 }
 
 process.on('SIGTERM', () => manejarApagado('SIGTERM'));
-process.on('SIGINT',  () => manejarApagado('SIGINT'));
+process.on('SIGINT', () => manejarApagado('SIGINT'));
 
-
-iniciarBaseDeDatos();
+iniciarWorker();

@@ -18,6 +18,7 @@ import prisma from './lib/prisma';
 // ---> LÍNEA NUEVA/CAMBIADA: Importamos la configuración correcta desde la carpeta lib que vimos en tu captura
 import { corsOptions } from './lib/cors.config';
 import publicRoutes from './routes/public.routes';
+import chatbotRoutes from './routes/chatbot.routes';
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use('/api/bot', apiLimiter, botRoutes);
 app.use('/api/products', apiLimiter, productRoutes);
 app.use('/api/telemetry', apiLimiter, telemetryRoutes);
 app.use('/api/public', apiLimiter, publicRoutes);
+app.use('/api/chatbot', apiLimiter, chatbotRoutes);
 
 app.use(errorHandler);
 

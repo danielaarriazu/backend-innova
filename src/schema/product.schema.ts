@@ -27,21 +27,53 @@ export const createProductSchema = z.object({
     .max(200, { error: 'El nombre no puede superar los 200 caracteres' }),
 
   descripcion: z
-    .string({ error: 'La descripción es obligatoria' })
+    .string()
     .trim()
     .max(2000, { error: 'La descripción no puede superar los 2000 caracteres' })
     .optional(),
+  
+  requiereCotizacion: z.preprocess((val) => {
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return val;
+  }, z.boolean().default(false)),
 
-  precio: precioField,
+  precio: z.coerce
+    .number({ error: 'El precio debe ser un número' })
+    .min(0, { message: 'El precio no puede ser negativo' })
+    .optional()
+    .or(z.literal('')),
 
-  stock: stockField,
+  stock: z.preprocess(
+    (val) => {
+      const convertido = Number(val);
+      return isNaN(convertido) ? 0 : convertido;
+    },
+    z.number()
+     .min(0, { message: 'El stock no puede ser negativo' })
+     .default(0)
+  ),
 
   urlImagen: z
     .url({ error: 'La URL de la imagen no es válida' })
     .optional()
     .or(z.literal('')),
 
-  activo: z.boolean().default(true),
+  activo: z.preprocess((val) => {
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return val;
+  }, z.boolean().default(true)),
+  })
+.refine((data) => {
+  if (!data.requiereCotizacion) {
+    const precioNum = Number(data.precio);
+    return !isNaN(precioNum) && precioNum > 0;
+  }
+  return true; 
+}, {
+  message: "Si el producto no es 'A convenir', debes ingresar un precio mayor a 0",
+  path: ["precio"], 
 });
 
 export const updateProductSchema = z.object({
@@ -53,7 +85,7 @@ export const updateProductSchema = z.object({
     .optional(),
 
   descripcion: z
-    .string({ error: 'La descripción es obligatoria' })
+    .string()
     .trim()
     .max(2000, { error: 'La descripción no puede superar los 2000 caracteres' })
     .optional()
@@ -61,7 +93,15 @@ export const updateProductSchema = z.object({
 
   precio: precioField.optional(),
 
-  stock: stockField.optional(),
+  stock: z.preprocess(
+    (val) => {
+      const convertido = Number(val);
+      return isNaN(convertido) ? 0 : convertido;
+    },
+    z.number()
+     .min(0, { message: 'El stock no puede ser negativo' })
+     .default(0)
+  ),
 
   urlImagen: z
     .url({ error: 'La URL de la imagen no es válida' })

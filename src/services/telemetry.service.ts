@@ -1,17 +1,12 @@
 import { Redis } from '@upstash/redis';
+import { TelemetryData } from '../types/telemetry.types';
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL as string,
   token: process.env.UPSTASH_REDIS_REST_TOKEN as string,
 });
 
-interface TelemetryData {
-  sessionId: string;
-  usuarioId?: string;
-  ip?: string;
-  dispositivo?: string;
-  eventos: any[];
-}
+
 
 export const enviarEventosQueue = async (data: TelemetryData): Promise<void> => {
   try {

@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 export const updateBotSchema = z.object({
-  activo: z.boolean().optional(),
+  activo: z.preprocess((val) => {
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return val; 
+  }, z.boolean().optional()),
 
   nombreNegocio: z
     .string()
