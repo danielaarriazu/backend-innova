@@ -156,15 +156,48 @@ if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
           ? 'COTIZACION' 
           : flujoDestino;
 
-        await prisma.consulta.create({
+        const consultaActiva = await prisma.consulta.findFirst({
+          where: { sessionId: sessionId, botId: botId }
+        });
+
+        if (!consultaActiva) {
+          return {
+            respuesta: "Perdón, se perdió el hilo de la conversación. Volvamos a empezar.",
+            botones: [{ id: 'btn_volver', texto: 'Volver al menú', accion: 'VOLVER_MENU' }],
+            requiereInput: false,
+            contexto: 'INICIO'
+          };
+        }
+
+        const mensajeTelefono = await prisma.mensaje.create({
           data: {
-            bot: { connect: { id: botId } },
+            consultaId: consultaActiva.id,
+            emisor: 'CLIENTE',
+            tipoMensaje: 'SISTEMA_CLIENTE',
+            contenido: telefonoIngresado
+          }
+        });
+
+        await prisma.lead.create({
+          data: {
+            nombre: nombreGuardado,
+            telefono: telefonoIngresado,
+            consultaId: consultaActiva.id,
+            mensajeId: mensajeTelefono.id 
+          }
+        });
+
+        const esDerivacion = (flujoDestino === 'DERIVAR_HUMANO') || requiereCotizacionManual;
+        await prisma.consulta.update({
+          where: { id: consultaActiva.id },
+          data: {
             clienteNombre: nombreGuardado,
             clienteTelefono: telefonoIngresado,
-            tipoConsulta: tipoConsultaFinal, 
-            canal: 'chatbot',
-            asunto: flujoDestino === 'DERIVAR_HUMANO' ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
+            tipoConsulta: tipoConsultaFinal,
+            asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
             descripcion: descripcionConsulta,
+            derivada: esDerivacion, 
+            estado: 'EN_PROCESO'    
           }
         });
 

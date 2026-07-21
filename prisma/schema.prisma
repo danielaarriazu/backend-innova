@@ -173,6 +173,19 @@ enum CerradaPor {
   CLIENTE
 }
 
+enum RolEmisor {
+  CLIENTE
+  BOT
+  EMPRENDEDOR 
+}
+
+enum TipoMensaje {
+  TEXTO             // Reservado para chat libre: el emprendedor habla
+  DOCUMENTO         // Exclusivo para archivos: el PDF del presupuesto generado.
+  SISTEMA           // El bot operando: envía menús, pide datos (nombre/teléfono)
+  SISTEMA_CLIENTE   // El cliente interactuando: selección de opciones o envío de formulario (nombre/teléfono).
+}
+
 model RegistroActividad {
   id          String   @id @default(uuid())
   usuarioId   String
@@ -204,7 +217,7 @@ model Consulta {
   id                 String             @id @default(uuid())
   botId              String
   bot                ConfiguracionBot   @relation(fields: [botId], references: [id], onDelete: Cascade)
-  sessionAnonimaId   String?
+  sessionId   String?
   clienteNombre      String?
   clienteTelefono    String?
   estado             EstadoConsulta     @default(NUEVA)
@@ -216,6 +229,7 @@ model Consulta {
   asunto             String?
   descripcion        String?            @db.Text
   derivadaA          String?
+  lead               Lead?
   fechaCreacion      DateTime           @default(now())
   fechaActualizacion DateTime           @updatedAt
   fechaCierre        DateTime?
@@ -224,24 +238,47 @@ model Consulta {
   Usuario            Usuario[]
 
   @@index([botId, fechaActualizacion])
-  @@index([sessionAnonimaId])
+  @@index([sessionId])
 }
 
 model Mensaje {
-  id                 String    @id @default(uuid())
+  id                 String       @id @default(uuid())
+  
   consultaId         String
-  consulta           Consulta  @relation(fields: [consultaId], references: [id], onDelete: Cascade)
+  consulta           Consulta     @relation(fields: [consultaId], references: [id], onDelete: Cascade)
+  
+  // Hilos de conversación
   mensajePadreId     String?
-  mensajePadre       Mensaje?  @relation("MensajeHilo", fields: [mensajePadreId], references: [id])
-  respuestas         Mensaje[] @relation("MensajeHilo")
-  emisor             String
-  contenido          String    @db.Text
-  tipoMensaje        String?   @default("texto")
-  leido              Boolean   @default(false)
-  fechaCreacion      DateTime  @default(now())
-  fechaActualizacion DateTime  @updatedAt
+  mensajePadre       Mensaje?     @relation("MensajeHilo", fields: [mensajePadreId], references: [id])
+  respuestas         Mensaje[]    @relation("MensajeHilo")
+  
+  emisor             RolEmisor    @default(CLIENTE)
+  tipoMensaje        TipoMensaje  @default(SISTEMA) 
+  contenido          String       @db.Text 
+  leadGenerado       Lead?
+  leido              Boolean      @default(false)
+  
+  fechaCreacion      DateTime     @default(now())
+  fechaActualizacion DateTime     @updatedAt
 
   @@index([consultaId, fechaCreacion])
+  @@index([emisor]) 
+}
+
+model Lead {
+  id            String   @id @default(uuid())
+  nombre        String
+  telefono      String
+  
+  // Relación con el mensaje exacto donde el cliente dejó sus datos
+  mensajeId     String   @unique
+  mensaje       Mensaje  @relation(fields: [mensajeId], references: [id])
+  
+  // Relación con la sesión completa para atar el historial
+  consultaId    String   @unique
+  consulta      Consulta @relation(fields: [consultaId], references: [id])
+
+  fechaCreacion DateTime @default(now())
 }
 
 model ConsultaProducto {
