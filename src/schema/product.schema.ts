@@ -1,16 +1,5 @@
 import { z } from 'zod';
 
-const precioField = z
-  .number({ error: 'El precio es obligatorio'})
-  .positive({ error: 'El precio debe ser mayor a 0' })
-  .multipleOf(0.01, { error: 'El precio no puede tener más de 2 decimales' });
-
-const stockField = z
-  .number({ error: 'El stock debe ser un número' })
-  .int({ error: 'El stock debe ser un número entero' })
-  .min(0, { error: 'El stock no puede ser negativo' })
-  .default(0);
-
   const uuidField = (label: string) =>
   z.uuid({
     error: (issue) =>
@@ -91,16 +80,28 @@ export const updateProductSchema = z.object({
     .optional()
     .nullable(), // permite poner null para borrar la descripción
 
-  precio: precioField.optional(),
+  precio: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === '') return undefined;
+      const convertido = Number(val);
+      return isNaN(convertido) ? val : convertido;
+    },
+    z.number({ error: 'El precio debe ser un número' })
+     .positive({ error: 'El precio debe ser mayor a 0' })
+     .multipleOf(0.01, { error: 'El precio no puede tener más de 2 decimales' })
+     .optional()
+  ),
 
   stock: z.preprocess(
     (val) => {
+      if (val === undefined || val === null || val === '') return undefined;
       const convertido = Number(val);
-      return isNaN(convertido) ? 0 : convertido;
+      return isNaN(convertido) ? val : convertido;
     },
-    z.number()
-     .min(0, { message: 'El stock no puede ser negativo' })
-     .default(0)
+    z.number({ error: 'El stock debe ser un número' })
+     .int({ error: 'El stock debe ser un número entero' })
+     .min(0, { error: 'El stock no puede ser negativo' })
+     .optional()
   ),
 
   urlImagen: z
@@ -109,7 +110,12 @@ export const updateProductSchema = z.object({
     .nullable()
     .or(z.literal('')),
 
-  activo: z.boolean().optional(),
+  activo: z.preprocess((val) => {
+    if (val === undefined || val === null || val === '') return undefined;
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return val;
+  }, z.boolean().optional()),
 }).refine(
   (data) => Object.keys(data).length > 0,
   { error: 'Debes enviar al menos un campo para actualizar' }

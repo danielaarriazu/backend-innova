@@ -54,7 +54,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
             botId,
             pregunta: "¿Cuáles son los medios de pago?",
             respuesta: "Aceptamos transferencias bancarias, tarjetas de crédito y débito a través de MercadoPago.",
-            activa: true,
+            activa: false,
           }]
         }
       }
@@ -69,7 +69,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
             botId,
             pregunta: "¿Tienen stock disponible?",
             respuesta: "Si, contamos con stock disponible para todos nuestros productos.",
-            activa: true,
+            activa: false,
           }]
         }
       }
@@ -84,7 +84,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
             botId,
             pregunta: "¿Realizan envios?",
             respuesta: "Si, hacen envíos a todo el país.",
-            activa: true,
+            activa: false,
           }]
         }
       }
@@ -100,13 +100,13 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
               botId,
               pregunta: "¿Cuál es el horario de atención?",
               respuesta: "Atendemos de lunes a viernes de 9 AM a 6 PM.",
-              activa: true,
+              activa: false,
             },
             {
               botId,
               pregunta: "¿Aceptan cambios o devoluciones?",
               respuesta: "Sí, aceptamos cambios y devoluciones dentro de los primeros 30 días de recibido Unicamente los dias Lunes.",
-              activa: true,
+              activa: false,
             }
           ]
         }
@@ -122,7 +122,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
             botId,
             pregunta: "¿Hacen precio por mayor?",
             respuesta: "Si, ofrecemos precios especiales para compras por mayor.",
-            activa: true,
+            activa: false,
           }]
         }
       }

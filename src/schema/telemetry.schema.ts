@@ -26,6 +26,12 @@ export const trackEventsSchema = z.object({
     .array(eventoSchema, { error: 'El array de eventos es obligatorio' })
     .min(1, {error: 'Debes enviar al menos un evento'})
     .max(100, {error: 'No se pueden enviar más de 100 eventos por petición'}),
+  botId: z
+    .string()
+    .optional(),
+  tipoUsuario: z
+    .enum(['ANONIMO', 'EMPRENDEDOR', 'CLIENTE'])
+    .optional(),
 });
 
 export type TrackEventsInput = z.infer<typeof trackEventsSchema>;
