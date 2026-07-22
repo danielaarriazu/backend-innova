@@ -17,6 +17,7 @@ model Usuario {
   nombre        String
   email         String        @unique
   password      String
+  googleId      String?       @unique
   rol           Rol           @default(EMPRENDEDOR)
   estado        EstadoUsuario @default(ACTIVO)
   fechaRegistro DateTime      @default(now())

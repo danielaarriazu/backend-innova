@@ -5,8 +5,13 @@ import { registrarActividad } from './activity.service';
 import { RegisterInput, LoginInput, AuthResult } from '../types/auth.types';
 import { EstadoUsuario } from '@prisma/client';
 import { generarSlug } from '../utils/slug';
+import { OAuth2Client } from 'google-auth-library';
+import { randomUUID } from 'node:crypto';
+import type { GoogleLoginInput } from '../types/auth.types';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 if (!JWT_SECRET) {
   console.error('FATAL ERROR: JWT_SECRET no está configurado en el archivo .env');
@@ -174,6 +179,96 @@ export const iniciarSesion = async (data: LoginInput): Promise<AuthResult> => {
         usuarioId: usuario.id,
         accion: 'LOGIN_EXITOSO',
         detalle: 'El usuario inició sesión exitosamente.',
+        ip: data.ip,
+        dispositivo: data.dispositivo,
+      },
+    });
+  });
+
+  return {
+    token,
+    usuario: {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      email: usuario.email,
+      rol: usuario.rol,
+    },
+  };
+};
+
+export const iniciarSesionGoogle = async (data: GoogleLoginInput): Promise<AuthResult> => {
+  if (!googleClient || !GOOGLE_CLIENT_ID) throw new Error('GOOGLE_AUTH_NOT_CONFIGURED');
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: data.credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw new Error('INVALID_GOOGLE_CREDENTIAL');
+  }
+
+  if (!payload?.sub || !payload.email || !payload.email_verified) {
+    throw new Error('INVALID_GOOGLE_CREDENTIAL');
+  }
+
+  const email = payload.email.toLowerCase();
+  let usuario = await prisma.usuario.findFirst({
+    where: {
+      OR: [{ googleId: payload.sub }, { email }],
+    },
+  });
+
+  if (usuario?.googleId && usuario.googleId !== payload.sub) {
+    throw new Error('INVALID_GOOGLE_CREDENTIAL');
+  }
+
+  if (!usuario) {
+    const nombre = payload.name?.trim() || email.split('@')[0];
+    const created = await registrarUsuario({
+      nombre,
+      email,
+      password: `${randomUUID()}Aa1!`,
+      nombreNegocio: nombre,
+    });
+    usuario = await prisma.usuario.update({
+      where: { id: created.id },
+      data: { googleId: payload.sub },
+    });
+  } else if (!usuario.googleId) {
+    usuario = await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { googleId: payload.sub },
+    });
+  }
+
+  if (usuario.estado !== EstadoUsuario.ACTIVO) throw new Error('ACCOUNT_INACTIVE');
+
+  const token = jwt.sign(
+    { id: usuario.id, email: usuario.email, rol: usuario.rol },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.historialSesion.create({
+      data: {
+        usuarioId: usuario.id,
+        ip: data.ip,
+        dispositivo: data.dispositivo,
+      },
+    });
+    await tx.usuario.update({
+      where: { id: usuario.id },
+      data: { ultimaSesion: new Date() },
+    });
+    await tx.registroActividad.create({
+      data: {
+        usuarioId: usuario.id,
+        accion: 'LOGIN_GOOGLE_EXITOSO',
+        detalle: 'El usuario inició sesión con Google.',
         ip: data.ip,
         dispositivo: data.dispositivo,
       },
