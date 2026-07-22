@@ -65,4 +65,12 @@ export const updateBotSchema = z.object({
     .optional(),
 });
 
+export const updateSlugSchema = z.object({
+  slug: z
+    .string({ error: 'El enlace público es obligatorio' })
+    .trim()
+    .min(1, { error: 'El enlace público no puede estar vacío' })
+    .max(100, { error: 'El enlace público no puede superar los 100 caracteres' }),
+});
+
 export type UpdateBotInput = z.infer<typeof updateBotSchema>;

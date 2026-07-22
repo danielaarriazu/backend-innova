@@ -70,6 +70,29 @@ export const actualizarConfig = async (req: Request, res: Response) => {
   }
 };
 
+export const actualizarSlug = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const slug = await botService.actualizarSlugBot({
+      usuarioId: req.usuario!.id,
+      slug: req.body.slug,
+      ip: req.ip ?? req.socket.remoteAddress,
+      dispositivo: req.headers['user-agent'],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Enlace público actualizado con éxito.',
+      slug,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
+      res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+      return;
+    }
+    next(error);
+  }
+};
+
 export const obtenerRubros = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const rubros = await prisma.rubro.findMany({

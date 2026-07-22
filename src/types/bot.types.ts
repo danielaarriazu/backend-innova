@@ -14,3 +14,10 @@ export interface UpdateBotInput {
   ip?: string;
   dispositivo?: string;
 }
+
+export interface UpdateSlugInput {
+  usuarioId: string;
+  slug: string;
+  ip?: string;
+  dispositivo?: string;
+}
