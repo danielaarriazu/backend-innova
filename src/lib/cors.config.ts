@@ -6,6 +6,11 @@ const DEV_ORIGINS = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
 ];
+
+const DEPLOYED_FRONTEND_ORIGINS = [
+  'https://chatbot-innova-frontend.vercel.app',
+  'https://chatemprendebot.netlify.app',
+];
  
 function parseEnvOrigins(): string[] {
   const raw = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
@@ -28,7 +33,12 @@ const NETLIFY_REGEX = /^https:\/\/[a-zA-Z0-9-]+\.netlify\.app$/;
 // Cubre además cualquier dominio *.onrender.com, por si el backend cambia de nombre/URL.
 const RENDER_ORIGIN_REGEX = /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/;
  
-const ALLOWED_ORIGINS = [...new Set([...DEV_ORIGINS, ...ENV_ORIGINS, ...SELF_ORIGIN])];
+const ALLOWED_ORIGINS = [...new Set([
+  ...DEV_ORIGINS,
+  ...DEPLOYED_FRONTEND_ORIGINS,
+  ...ENV_ORIGINS,
+  ...SELF_ORIGIN,
+])];
  
 export const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -54,4 +64,3 @@ export const corsOptions: CorsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
- 

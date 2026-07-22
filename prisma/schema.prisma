@@ -17,6 +17,7 @@ model Usuario {
   nombre        String
   email         String        @unique
   password      String
+  googleId      String?       @unique
   rol           Rol           @default(EMPRENDEDOR)
   estado        EstadoUsuario @default(ACTIVO)
   fechaRegistro DateTime      @default(now())
@@ -57,6 +58,8 @@ model ConfiguracionBot {
   respuestaDerivacion  String? @db.Text
   derivacionAutomatica Boolean @default(false)
   slug                 String? @unique
+  slugPersonalizado    Boolean @default(false)
+  slugEditadoEn        DateTime?
 
   // historialSesiones
   fechaCreacion      DateTime @default(now())
@@ -99,12 +102,15 @@ model Faq {
   categoriaId String
   categoria   CategoriaFAQ @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
 
-  pregunta  String
-  respuesta String  @db.Text
-  activa    Boolean @default(true)
+  pregunta            String
+  preguntaNormalizada String
+  respuesta           String  @db.Text
+  activa              Boolean @default(true)
 
   fechaCreacion     DateTime @default(now())
   fechaModificacion DateTime @updatedAt
+
+  @@unique([botId, preguntaNormalizada])
 }
 
 model Producto {

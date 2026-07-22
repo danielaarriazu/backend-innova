@@ -34,6 +34,13 @@ export const loginSchema = z.object({
     .min(1, { error: 'La contraseña es obligatoria' }),
 });
 
+export const googleLoginSchema = z.object({
+  credential: z
+    .string({ error: 'La credencial de Google es obligatoria' })
+    .min(1, { error: 'La credencial de Google es obligatoria' }),
+});
+
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
