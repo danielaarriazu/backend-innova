@@ -5,7 +5,15 @@ import { esConflictoSlug, generarSlug, generarSlugUnico } from '../utils/slug';
 
 export const obtenerConfiguracionBot = async (usuarioId: string) => {
   const bot = await prisma.configuracionBot.findUnique({
-    where: { usuarioId }
+    where: { usuarioId },
+    include: {
+      rubro: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+    },
   });
 
   if (!bot) {
