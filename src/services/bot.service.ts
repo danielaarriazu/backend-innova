@@ -79,7 +79,7 @@ export const actualizarConfiguracionBot = async (data: UpdateBotInput) => {
 export const actualizarSlugBot = async (data: UpdateSlugInput) => {
   const botExistente = await prisma.configuracionBot.findUnique({
     where: { usuarioId: data.usuarioId },
-    select: { id: true },
+    select: { slug: true, slugPersonalizado: true },
   });
 
   if (!botExistente) {
@@ -87,11 +87,23 @@ export const actualizarSlugBot = async (data: UpdateSlugInput) => {
   }
 
   const slug = generarSlug(data.slug);
-  const botActualizado = await prisma.configuracionBot.update({
-    where: { usuarioId: data.usuarioId },
-    data: { slug },
-    select: { slug: true },
+
+  if (slug === botExistente.slug) {
+    return slug;
+  }
+
+  if (botExistente.slugPersonalizado) {
+    throw new Error('SLUG_EDIT_ALREADY_USED');
+  }
+
+  const resultado = await prisma.configuracionBot.updateMany({
+    where: { usuarioId: data.usuarioId, slugPersonalizado: false },
+    data: { slug, slugPersonalizado: true, slugEditadoEn: new Date() },
   });
+
+  if (resultado.count !== 1) {
+    throw new Error('SLUG_EDIT_ALREADY_USED');
+  }
 
   await registrarActividad(
     data.usuarioId,
@@ -101,5 +113,5 @@ export const actualizarSlugBot = async (data: UpdateSlugInput) => {
     data.dispositivo
   );
 
-  return botActualizado.slug;
+  return slug;
 };

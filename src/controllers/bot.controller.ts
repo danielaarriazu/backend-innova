@@ -89,6 +89,15 @@ export const actualizarSlug = async (req: Request, res: Response, next: NextFunc
       res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
       return;
     }
+    if (error instanceof Error && error.message === 'SLUG_EDIT_ALREADY_USED') {
+      res.status(409).json({
+        success: false,
+        code: 'SLUG_EDIT_ALREADY_USED',
+        field: 'slug',
+        error: 'El enlace público ya fue personalizado y no puede volver a modificarse.',
+      });
+      return;
+    }
     next(error);
   }
 };

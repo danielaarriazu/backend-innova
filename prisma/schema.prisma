@@ -58,6 +58,8 @@ model ConfiguracionBot {
   respuestaDerivacion  String? @db.Text
   derivacionAutomatica Boolean @default(false)
   slug                 String? @unique
+  slugPersonalizado    Boolean @default(false)
+  slugEditadoEn        DateTime?
 
   // historialSesiones
   fechaCreacion      DateTime @default(now())
