@@ -1,11 +1,33 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
 import { CreateFaqInput, UpdateFaqInput, DeleteFaqInput, GetFaqsInput } from '../types/faq.types';
+import { normalizeFaqQuestion } from '../utils/normalizeFaqQuestion';
  
 const obtenerBotDeUsuario = async (usuarioId: string) => {
   const bot = await prisma.configuracionBot.findUnique({ where: { usuarioId } });
   if (!bot) throw new Error('BOT_NOT_FOUND');
   return bot;
+};
+
+const verificarPreguntaDuplicada = async (botId: string, preguntaNormalizada: string, faqId?: string) => {
+  const duplicada = await prisma.faq.findFirst({
+    where: {
+      botId,
+      preguntaNormalizada,
+      ...(faqId ? { id: { not: faqId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  if (duplicada) throw new Error('FAQ_DUPLICATE');
+};
+
+const convertirErrorDeUnicidad = (error: unknown): never => {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    throw new Error('FAQ_DUPLICATE');
+  }
+  throw error;
 };
  
 export const crearFAQ = async (data: CreateFaqInput) => {
@@ -16,17 +38,22 @@ export const crearFAQ = async (data: CreateFaqInput) => {
   });
  
   if (!categoriaExiste) throw new Error('CATEGORY_NOT_FOUND');
- 
+
+  const pregunta = data.pregunta.trim();
+  const preguntaNormalizada = normalizeFaqQuestion(pregunta);
+  await verificarPreguntaDuplicada(bot.id, preguntaNormalizada);
+
   const nuevaFAQ = await prisma.faq.create({
     data: {
       botId: bot.id,
       categoriaId: data.categoriaId,
-      pregunta: data.pregunta.trim(),
+      pregunta,
+      preguntaNormalizada,
       respuesta: data.respuesta.trim(),
       activa: data.activa !== undefined ? data.activa : true,
       
     }
-  });
+  }).catch(convertirErrorDeUnicidad);
  
   await registrarActividad(
     data.usuarioId,
@@ -96,15 +123,22 @@ export const actualizarFAQ = async (data: UpdateFaqInput) => {
     if (!categoriaExiste) throw new Error('CATEGORY_NOT_FOUND');
   }
 
+  const pregunta = data.pregunta ? data.pregunta.trim() : faqExistente.pregunta;
+  const preguntaNormalizada = data.pregunta
+    ? normalizeFaqQuestion(pregunta)
+    : faqExistente.preguntaNormalizada;
+  if (data.pregunta) await verificarPreguntaDuplicada(bot.id, preguntaNormalizada, data.faqId);
+
   const faqActualizada = await prisma.faq.update({
     where: { id: data.faqId },
     data: {
       categoriaId: data.categoriaId || faqExistente.categoriaId,
-      pregunta: data.pregunta ? data.pregunta.trim() : faqExistente.pregunta,
+      pregunta,
+      preguntaNormalizada,
       respuesta: data.respuesta ? data.respuesta.trim() : faqExistente.respuesta,
       activa: data.activa !== undefined ? data.activa : faqExistente.activa,
     }
-  });
+  }).catch(convertirErrorDeUnicidad);
 
   await registrarActividad(
     data.usuarioId,

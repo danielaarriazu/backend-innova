@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as faqService from '../services/faq.service';
 import { GetFaqsInput } from '../types/faq.types';
+import { DUPLICATE_FAQ_MESSAGE } from '../utils/normalizeFaqQuestion';
 
 const getRequestMeta = (req: Request) => ({
   ip: req.ip ?? req.socket.remoteAddress,
@@ -24,6 +25,10 @@ export const createFAQ = async (req: Request, res: Response, next: NextFunction)
       }
       if (error.message === 'CATEGORY_NOT_FOUND') {
         res.status(404).json({ success: false, error: 'La categoría especificada no existe o no pertenece a tu bot.' });
+        return;
+      }
+      if (error.message === 'FAQ_DUPLICATE') {
+        res.status(409).json({ success: false, error: DUPLICATE_FAQ_MESSAGE });
         return;
       }
     }
@@ -67,6 +72,10 @@ export const updateFAQ = async (req: Request, res: Response, next: NextFunction)
       }
       if (error.message === 'CATEGORY_NOT_FOUND') {
         res.status(400).json({ success: false, error: 'La nueva categoría especificada no existe.' });
+        return;
+      }
+      if (error.message === 'FAQ_DUPLICATE') {
+        res.status(409).json({ success: false, error: DUPLICATE_FAQ_MESSAGE });
         return;
       }
     }

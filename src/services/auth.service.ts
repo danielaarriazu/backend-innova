@@ -1,6 +1,7 @@
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { normalizeFaqQuestion } from '../utils/normalizeFaqQuestion';
 import { registrarActividad } from './activity.service';
 import { RegisterInput, LoginInput, AuthResult } from '../types/auth.types';
 import { EstadoUsuario } from '@prisma/client';
@@ -60,6 +61,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
           create: [{
             botId,
             pregunta: "¿Cuáles son los medios de pago?",
+            preguntaNormalizada: normalizeFaqQuestion("¿Cuáles son los medios de pago?"),
             respuesta: "Aceptamos transferencias bancarias, tarjetas de crédito y débito a través de MercadoPago.",
             activa: false,
           }]
@@ -75,6 +77,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
           create: [{
             botId,
             pregunta: "¿Tienen stock disponible?",
+            preguntaNormalizada: normalizeFaqQuestion("¿Tienen stock disponible?"),
             respuesta: "Si, contamos con stock disponible para todos nuestros productos.",
             activa: false,
           }]
@@ -90,6 +93,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
           create: [{
             botId,
             pregunta: "¿Realizan envios?",
+            preguntaNormalizada: normalizeFaqQuestion("¿Realizan envios?"),
             respuesta: "Si, hacen envíos a todo el país.",
             activa: false,
           }]
@@ -106,12 +110,14 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
             {
               botId,
               pregunta: "¿Cuál es el horario de atención?",
+              preguntaNormalizada: normalizeFaqQuestion("¿Cuál es el horario de atención?"),
               respuesta: "Atendemos de lunes a viernes de 9 AM a 6 PM.",
               activa: false,
             },
             {
               botId,
               pregunta: "¿Aceptan cambios o devoluciones?",
+              preguntaNormalizada: normalizeFaqQuestion("¿Aceptan cambios o devoluciones?"),
               respuesta: "Sí, aceptamos cambios y devoluciones dentro de los primeros 30 días de recibido Unicamente los dias Lunes.",
               activa: false,
             }
@@ -128,6 +134,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
           create: [{
             botId,
             pregunta: "¿Hacen precio por mayor?",
+            preguntaNormalizada: normalizeFaqQuestion("¿Hacen precio por mayor?"),
             respuesta: "Si, ofrecemos precios especiales para compras por mayor.",
             activa: false,
           }]

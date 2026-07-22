@@ -102,12 +102,15 @@ model Faq {
   categoriaId String
   categoria   CategoriaFAQ @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
 
-  pregunta  String
-  respuesta String  @db.Text
-  activa    Boolean @default(true)
+  pregunta            String
+  preguntaNormalizada String
+  respuesta           String  @db.Text
+  activa              Boolean @default(true)
 
   fechaCreacion     DateTime @default(now())
   fechaModificacion DateTime @updatedAt
+
+  @@unique([botId, preguntaNormalizada])
 }
 
 model Producto {
