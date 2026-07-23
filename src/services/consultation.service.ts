@@ -191,6 +191,7 @@ export const agregarMensajeEmprendedor = async (usuarioId: string, consultaId: s
       tipoMensaje: TipoMensaje.TEXTO,
       contenido: contenido.trim(),
       leido: false,
+      fechaCierre: new Date(),
     },
   });
 
