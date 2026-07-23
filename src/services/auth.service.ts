@@ -5,7 +5,6 @@ import { normalizeFaqQuestion } from '../utils/normalizeFaqQuestion';
 import { registrarActividad } from './activity.service';
 import { RegisterInput, LoginInput, AuthResult } from '../types/auth.types';
 import { EstadoUsuario } from '@prisma/client';
-import { esConflictoSlug, generarSlugUnico } from '../utils/slug';
 import { OAuth2Client } from 'google-auth-library';
 import { randomUUID } from 'node:crypto';
 import type { GoogleLoginInput } from '../types/auth.types';
@@ -26,10 +25,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
   if (existingUser) throw new Error('EMAIL_ALREADY_REGISTERED');
 
   const hashedPassword = await bcryptjs.hash(data.password, 10);
-  const textoBaseSlug = data.nombreNegocio || data.nombre;
-  const slugInicial = await generarSlugUnico(textoBaseSlug);
-
-  const crearUsuarioConBot = async (slug: string) => prisma.$transaction(async (tx) => {
+  const crearUsuarioConBot = async () => prisma.$transaction(async (tx) => {
   const usuarioCreado = await tx.usuario.create({
     data: {
       nombre: data.nombre,
@@ -39,10 +35,8 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
       estado: 'ACTIVO',
       bot: {
         create: {
-          nombreNegocio: data.nombreNegocio || data.nombre,
-          slug,
           activo: true,
-          mensajeBienvenida: `¡Hola! Bienvenido/a a ${data.nombreNegocio || data.nombre}. ¿En qué te puedo ayudar hoy?`,
+          mensajeBienvenida: '¡Hola! ¿En qué te puedo ayudar hoy?',
           respuestaDerivacion: ' Aguarda un momento, te estoy comunicando con un asesor humano para que te atienda personalmente.'
         }
       }
@@ -145,15 +139,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
     return usuarioCreado;
   });
 
-  let newUser: Awaited<ReturnType<typeof crearUsuarioConBot>>;
-  try {
-    newUser = await crearUsuarioConBot(slugInicial);
-  } catch (error) {
-    if (!esConflictoSlug(error)) throw error;
-
-    const slugReintento = await generarSlugUnico(textoBaseSlug);
-    newUser = await crearUsuarioConBot(slugReintento);
-  }
+  const newUser = await crearUsuarioConBot();
 
   return { id: newUser.id };
 };
@@ -250,7 +236,6 @@ export const iniciarSesionGoogle = async (data: GoogleLoginInput): Promise<AuthR
       nombre,
       email,
       password: `${randomUUID()}Aa1!`,
-      nombreNegocio: nombre,
     });
     usuario = await prisma.usuario.update({
       where: { id: created.id },
