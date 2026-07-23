@@ -35,19 +35,15 @@ const toConsultationDto = (consulta: ConsultationWithMessages) => ({
   id: consulta.id,
   usuarioId: null,
   sessionId: consulta.sessionId,
-  clienteNombre: consulta.clienteNombre,
-  clienteTelefono: consulta.clienteTelefono,
   estado: statusToApi(consulta.estado),
   derivada: consulta.derivada,
   cerradaPor: consulta.cerradaPor === CerradaPor.BOT
     ? 'bot'
     : consulta.cerradaPor === CerradaPor.EMPRENDEDOR ? 'emprendedor' : null,
   tipoConsulta: consulta.tipoConsulta,
-  prioridad: consulta.prioridad,
   canal: consulta.canal,
   asunto: consulta.asunto,
   descripcion: consulta.descripcion,
-  derivadaA: consulta.derivadaA,
   fechaCreacion: consulta.fechaCreacion.toISOString(),
   fechaActualizacion: consulta.fechaActualizacion.toISOString(),
   fechaCierre: consulta.fechaCierre?.toISOString() ?? null,
@@ -122,15 +118,15 @@ export const crearConsultaPublica = async (data: CreateConsultationInput) => {
     data: {
       botId: bot.id,
       sessionId: data.sessionId,
-      clienteNombre: data.clienteNombre,
-      clienteTelefono: data.clienteTelefono,
       tipoConsulta: data.tipoConsulta,
-      prioridad: data.prioridad ?? 'normal',
       canal: data.canal ?? 'web',
       asunto: data.asunto,
       descripcion: data.descripcion,
     },
-    include: consultationInclude,
+    include: {
+      ...consultationInclude,
+      mensajes: true,
+    }
   });
   return toConsultationDto(consulta);
 };
@@ -171,8 +167,6 @@ export const actualizarContactoPublico = async (
   const actualizada = await prisma.consulta.update({
     where: { id: consultaId },
     data: {
-      clienteNombre: clienteNombre.trim(),
-      clienteTelefono: clienteTelefono.trim(),
       derivada: true,
       estado: EstadoConsulta.EN_PROCESO,
     },

@@ -173,7 +173,7 @@ export const procesarAccionBot = async (
         }
         const esDerivacion = (flujoDestino === 'DERIVAR_HUMANO') || requiereCotizacionManual;
         await prisma.$transaction(async (tx) => {
-        const mensajeTelefono = await prisma.mensaje.create({
+        const mensajeTelefono = await tx.mensaje.create({
           data: {
             consultaId: consultaActiva.id,
             emisor: RolEmisor.CLIENTE,
@@ -194,9 +194,7 @@ export const procesarAccionBot = async (
         await prisma.consulta.update({
           where: { id: consultaActiva.id },
           data: {
-            usuarioID: telefonoIngresado,
-            clienteNombre: nombreGuardado,
-            clienteTelefono: telefonoIngresado,
+            Usuario: { connect: { id: telefonoIngresado } },
             tipoConsulta: tipoConsultaFinal,
             asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
             descripcion: descripcionConsulta,

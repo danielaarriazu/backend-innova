@@ -5,10 +5,7 @@ export type TipoMensaje = 'TEXTO' | 'ACCION' | 'PRESUPUESTO';
 export interface CreateConsultationInput {
   slug: string;
   sessionId?: string;
-  clienteNombre?: string;
-  clienteTelefono?: string;
   tipoConsulta?: string;
-  prioridad?: string;
   canal?: string;
   asunto?: string;
   descripcion?: string;

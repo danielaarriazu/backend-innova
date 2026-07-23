@@ -8,10 +8,7 @@ export const consultationParamsSchema = z.object({
 
 export const createConsultationSchema = z.object({
   sessionId: optionalText(200),
-  clienteNombre: optionalText(150),
-  clienteTelefono: optionalText(50),
   tipoConsulta: optionalText(100),
-  prioridad: z.enum(['baja', 'normal', 'alta', 'urgente']).optional(),
   canal: z.enum(['web', 'whatsapp']).default('web'),
   asunto: optionalText(250),
   descripcion: optionalText(2000),
