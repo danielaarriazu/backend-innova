@@ -35,7 +35,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
       estado: 'ACTIVO',
       bot: {
         create: {
-          activo: true,
+          activo: false,
           mensajeBienvenida: '¡Hola! ¿En qué te puedo ayudar hoy?',
           respuestaDerivacion: ' Aguarda un momento, te estoy comunicando con un asesor humano para que te atienda personalmente.'
         }
@@ -137,7 +137,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
     });
 
     return usuarioCreado;
-  });
+  }, { timeout: 20000 });
 
   const newUser = await crearUsuarioConBot();
 
