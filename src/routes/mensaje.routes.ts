@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { getHistorial } from '../controllers/mensaje.controller';
-import { verificarToken } from '../middlewares/auth.middleware'; 
+import { verificarTokenOpcional } from '../middlewares/auth.middleware'; 
 
 const router = Router();
 
-// GET /api/mensajes/:botId/:sessionId
-router.get('/:botId/:sessionId', verificarToken, getHistorial);
+// GET /api/mensajes/:slug/:sessionId
+router.get('/:slug/:sessionId', verificarTokenOpcional, getHistorial);
 
 export default router;

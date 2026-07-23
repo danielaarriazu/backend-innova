@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma';
 import { enviarEventosQueue } from './telemetry.service'; 
+import { TipoMensaje, RolEmisor } from '@prisma/client';
 
 export const procesarAccionBot = async (
   accion: string,
@@ -93,6 +94,7 @@ export const procesarAccionBot = async (
       if (!datosCliente || !datosCliente.texto) {
         return { respuesta: "Por favor, ingresá el dato.", requiereInput: true, contexto: contextoActual };
       }
+      console.log(` [DEBUG] Procesando ENVIAR_DATOS. Contexto actual: ${contextoActual}`);
 
       if (contextoActual?.startsWith('ESPERANDO_NOMBRE_')) {
         const nombreIngresado = datosCliente.texto;
@@ -114,7 +116,7 @@ export const procesarAccionBot = async (
         };
       }
 
-if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
+      if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
         const telefonoIngresado = datosCliente.texto;
         const nombreGuardado = datosCliente.datosAcumulados?.nombre || 'Cliente';
         const flujoDestino = contextoActual.split('ESPERANDO_TELEFONO_')[1];
@@ -155,12 +157,13 @@ if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
         const tipoConsultaFinal = (flujoDestino === 'PRESUPUESTO' && requiereCotizacionManual) 
           ? 'COTIZACION' 
           : flujoDestino;
-
+      try {
         const consultaActiva = await prisma.consulta.findFirst({
           where: { sessionId: sessionId, botId: botId }
         });
 
         if (!consultaActiva) {
+          console.warn(`[WARN] No se encontró consulta activa para sessionId: ${sessionId}`);
           return {
             respuesta: "Perdón, se perdió el hilo de la conversación. Volvamos a empezar.",
             botones: [{ id: 'btn_volver', texto: 'Volver al menú', accion: 'VOLVER_MENU' }],
@@ -168,12 +171,13 @@ if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
             contexto: 'INICIO'
           };
         }
-
+        const esDerivacion = (flujoDestino === 'DERIVAR_HUMANO') || requiereCotizacionManual;
+        await prisma.$transaction(async (tx) => {
         const mensajeTelefono = await prisma.mensaje.create({
           data: {
             consultaId: consultaActiva.id,
-            emisor: 'CLIENTE',
-            tipoMensaje: 'SISTEMA_CLIENTE',
+            emisor: RolEmisor.CLIENTE,
+            tipoMensaje: TipoMensaje.ACCION,
             contenido: telefonoIngresado
           }
         });
@@ -187,19 +191,20 @@ if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
           }
         });
 
-        const esDerivacion = (flujoDestino === 'DERIVAR_HUMANO') || requiereCotizacionManual;
         await prisma.consulta.update({
           where: { id: consultaActiva.id },
           data: {
+            usuarioID: telefonoIngresado,
             clienteNombre: nombreGuardado,
             clienteTelefono: telefonoIngresado,
             tipoConsulta: tipoConsultaFinal,
             asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
             descripcion: descripcionConsulta,
             derivada: esDerivacion, 
-            estado: 'EN_PROCESO'    
+            estado: 'NUEVA'    
           }
         });
+      });
 
         await enviarEventosQueue({
           botId, sessionId, tipoUsuario: 'CLIENTE',
@@ -238,7 +243,19 @@ if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
           requiereInput: false,
           contexto: 'FINALIZADO'
         };
+
+        } catch (error) {
+          // Acá capturamos si Prisma falla (ej: falta un campo en la tabla Lead)
+          console.error("[ERROR FATAL] Falló la base de datos al guardar datos del cliente:", error);
+          return {
+            respuesta: "Ocurrió un error interno al guardar tus datos. Por favor, intentá de nuevo más tarde.",
+            botones: [{ id: 'btn_volver', texto: 'Volver al menú', accion: 'VOLVER_MENU' }],
+            requiereInput: false,
+            contexto: contextoActual
+          };
+        }
       }
+      console.warn(`[WARN] Se alcanzó el final de ENVIAR_DATOS sin procesar. Revisa la variable contextoActual.`);
       return {
         respuesta: "Perdón, se perdió el hilo de la conversación. Volvamos a empezar.",
         botones: [{ id: 'btn_volver', texto: 'Volver al menú', accion: 'VOLVER_MENU' }],
@@ -246,35 +263,33 @@ if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
         contexto: 'INICIO'
       };
 
-    case 'VOLVER_MENU':
+    case 'INICIO':
       return {
-        respuesta: "¿En qué más puedo ayudarte?",
+        respuesta: bot?.mensajeBienvenida || "¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
         botones: [
-          {
-      id: 'btn_catalogo',
-      texto: 'Ver Catálogo',
-      accion: 'MOSTRAR_CATALOGO'
-      },
-      {
-      id: 'btn_horarios',
-      texto: 'Horarios de Atención',
-      accion: 'MOSTRAR_HORARIOS'
-      },
-      {
-      id: 'btn_faqs',
-      texto: 'Preguntas Frecuentes',
-      accion: 'MOSTRAR_FAQS'
-      },
-      {
-      id: 'btn_atencion',
-      texto: 'Atención Personalizada',
-      accion: 'DERIVAR_HUMANO'
-      }
+          { id: 'btn_catalogo', texto: 'Ver Catálogo', accion: 'MOSTRAR_CATALOGO' },
+          { id: 'btn_horarios', texto: 'Horarios de Atención', accion: 'MOSTRAR_HORARIOS' },
+          { id: 'btn_faqs', texto: 'Preguntas Frecuentes', accion: 'MOSTRAR_FAQS' },
+          { id: 'btn_atencion', texto: 'Atención Personalizada', accion: 'DERIVAR_HUMANO' }
         ],
         requiereInput: false,
         contexto: 'INICIO'
       };
 
+    case 'VOLVER_MENU':
+      // Esta acción se llama cuando el usuario cancela una operación o termina un flujo
+      return {
+        respuesta: "¿En qué más puedo ayudarte?",
+        botones: [
+          { id: 'btn_catalogo', texto: 'Ver Catálogo', accion: 'MOSTRAR_CATALOGO' },
+          { id: 'btn_horarios', texto: 'Horarios de Atención', accion: 'MOSTRAR_HORARIOS' },
+          { id: 'btn_faqs', texto: 'Preguntas Frecuentes', accion: 'MOSTRAR_FAQS' },
+          { id: 'btn_atencion', texto: 'Atención Personalizada', accion: 'DERIVAR_HUMANO' }
+        ],
+        requiereInput: false,
+        contexto: 'INICIO'
+      };
+   
     default:
       return {
         respuesta: "Acción no reconocida.",

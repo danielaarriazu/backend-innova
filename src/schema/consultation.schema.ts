@@ -20,7 +20,7 @@ export const createConsultationSchema = z.object({
 export const addConsultationMessageSchema = z.object({
   emisor: z.enum(['CLIENTE', 'EMPRENDEDOR', 'BOT']),
   contenido: z.string().trim().min(1, 'El mensaje no puede estar vacío').max(5000),
-  tipoMensaje: z.enum(['TEXTO', 'DOCUMENTO', 'SISTEMA', 'SISTEMA_CLIENTE']),
+  tipoMensaje: z.enum(['TEXTO', 'ACCION', 'PRESUPUESTO']),
 });
 
 export const updateConsultationStatusSchema = z.object({

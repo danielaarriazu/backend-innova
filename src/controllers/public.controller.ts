@@ -26,7 +26,8 @@ export const getChatInit = async (
 ): Promise<void> => {
   try {
     const { slug } = req.params;
-    const initData = await obtenerInitBot(slug);
+    const { sessionId } = req.query;
+    const initData = await obtenerInitBot(slug, sessionId as string);
     
     res.status(200).json({ success: true, data: initData });
   } catch (error: unknown) {

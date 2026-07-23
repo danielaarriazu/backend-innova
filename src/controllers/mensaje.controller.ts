@@ -3,13 +3,13 @@ import * as mensajeService from '../services/mensaje.service';
 
 export const getHistorial = async (req: Request, res: Response) => {
   try {
-    const { botId, sessionId } = req.params;
+    const { slug, sessionId } = req.params;
 
-    if (!botId || !sessionId) {
-      return res.status(400).json({ error: 'Faltan parámetros botId o sessionId' });
+    if (!slug || !sessionId) {
+      return res.status(400).json({ error: 'Faltan parámetros slug o sessionId' });
     }
 
-    const historial = await mensajeService.obtenerHistorialPorSesion(botId, sessionId);
+    const historial = await mensajeService.obtenerHistorialPorSesion(slug, sessionId);
     
     return res.status(200).json(historial);
   } catch (error) {

@@ -1,6 +1,6 @@
 export type ConsultationStatus = 'NUEVA' | 'EN_PROCESO' | 'RESUELTA' | 'CERRADA';
 export type ConsultationSender = 'CLIENTE' | 'EMPRENDEDOR' | 'BOT';
-export type TipoMensaje = 'TEXTO' | 'DOCUMENTO' | 'SISTEMA' | 'SISTEMA_CLIENTE';
+export type TipoMensaje = 'TEXTO' | 'ACCION' | 'PRESUPUESTO';
 
 export interface CreateConsultationInput {
   slug: string;

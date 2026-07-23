@@ -80,3 +80,24 @@ export const updatePublicConsultationContact = async (req: Request, res: Respons
     if (!handleKnownError(error, res)) next(error);
   }
 };
+
+export const addEntrepreneurMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { contenido } = req.body;
+    
+    if (!contenido || typeof contenido !== 'string') {
+      res.status(400).json({ success: false, error: 'El contenido del mensaje es requerido y debe ser texto.' });
+      return;
+    }
+
+    const mensaje = await consultationService.agregarMensajeEmprendedor(
+      req.usuario!.id, 
+      req.params.id, 
+      contenido
+    );
+    
+    res.status(201).json({ success: true, mensaje });
+  } catch (error: unknown) {
+    if (!handleKnownError(error, res)) next(error);
+  }
+};

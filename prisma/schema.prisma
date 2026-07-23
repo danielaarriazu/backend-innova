@@ -173,17 +173,16 @@ enum CerradaPor {
   CLIENTE
 }
 
-enum RolEmisor {
+enum RolEmisor { //quien
   CLIENTE
   BOT
   EMPRENDEDOR 
 }
 
-enum TipoMensaje {
+enum TipoMensaje { // formato
   TEXTO             // Reservado para chat libre: el emprendedor habla
-  DOCUMENTO         // Exclusivo para archivos: el PDF del presupuesto generado.
-  SISTEMA           // El bot operando: envía menús, pide datos (nombre/teléfono)
-  SISTEMA_CLIENTE   // El cliente interactuando: selección de opciones o envío de formulario (nombre/teléfono).
+  ACCION           // El bot operando: envía menús, pide datos (nombre/teléfono) - el cliente respondiendo por botones o sus datos
+  PRESUPUESTO   // El bot / emprendedor envian presupuesto al cliente
 }
 
 model RegistroActividad {
@@ -218,17 +217,13 @@ model Consulta {
   botId              String
   bot                ConfiguracionBot   @relation(fields: [botId], references: [id], onDelete: Cascade)
   sessionId   String?
-  clienteNombre      String?
-  clienteTelefono    String?
   estado             EstadoConsulta     @default(NUEVA)
   derivada           Boolean            @default(false)
   cerradaPor         CerradaPor?
   tipoConsulta       String?
-  prioridad          String?
   canal              String             @default("web")
   asunto             String?
   descripcion        String?            @db.Text
-  derivadaA          String?
   lead               Lead?
   fechaCreacion      DateTime           @default(now())
   fechaActualizacion DateTime           @updatedAt
@@ -253,7 +248,7 @@ model Mensaje {
   respuestas         Mensaje[]    @relation("MensajeHilo")
   
   emisor             RolEmisor    @default(CLIENTE)
-  tipoMensaje        TipoMensaje  @default(SISTEMA) 
+  tipoMensaje        TipoMensaje  @default(TEXTO) 
   contenido          String       @db.Text 
   leadGenerado       Lead?
   leido              Boolean      @default(false)

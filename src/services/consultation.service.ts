@@ -117,7 +117,7 @@ export const actualizarEstado = async (data: UpdateConsultationStatusInput) => {
 export const crearConsultaPublica = async (data: CreateConsultationInput) => {
   const bot = await prisma.configuracionBot.findUnique({ where: { slug: data.slug } });
   if (!bot || !bot.activo) throw new Error('BOT_NOT_FOUND');
-
+  console.log("🚨 [DEBUG] Payload recibido en crearConsultaPublica:", JSON.stringify(data, null, 2));
   const consulta = await prisma.consulta.create({
     data: {
       botId: bot.id,
@@ -179,4 +179,30 @@ export const actualizarContactoPublico = async (
     include: consultationInclude,
   });
   return toConsultationDto(actualizada);
+};
+
+export const agregarMensajeEmprendedor = async (usuarioId: string, consultaId: string, contenido: string) => {
+  const bot = await getBotByUser(usuarioId);
+  
+  const consulta = await prisma.consulta.findFirst({
+    where: { id: consultaId, botId: bot.id },
+  });
+  
+  if (!consulta) throw new Error('CONSULTATION_NOT_FOUND');
+
+  const mensaje = await prisma.mensaje.create({
+    data: {
+      consultaId: consulta.id,
+      emisor: RolEmisor.EMPRENDEDOR,
+      tipoMensaje: TipoMensaje.TEXTO,
+      contenido: contenido.trim(),
+      leido: false,
+    },
+  });
+
+  return {
+    ...mensaje,
+    fechaCreacion: mensaje.fechaCreacion.toISOString(),
+    fechaActualizacion: mensaje.fechaActualizacion.toISOString(),
+  };
 };
