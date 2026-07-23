@@ -3,6 +3,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
+
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import faqCategoryRoutes from './routes/faq-category.routes';
@@ -10,8 +11,11 @@ import faqRoutes from './routes/faq.routes';
 import botRoutes from './routes/bot.routes';
 import productRoutes from './routes/product.routes';
 import telemetryRoutes from './routes/telemetry.routes';
+
 import { errorHandler } from './middlewares/error.middleware';
 import prisma from './lib/prisma';
+
+// ---> LÍNEA NUEVA/CAMBIADA: Importamos la configuración correcta desde la carpeta lib que vimos en tu captura
 import { corsOptions } from './lib/cors.config';
 import publicRoutes from './routes/public.routes';
 import chatbotRoutes from './routes/chatbot.routes';
@@ -22,6 +26,7 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+// ---> LÍNEA NUEVA/CAMBIADA: Usamos la configuración importada en lugar del código duplicado que rompía Vercel
 app.use(cors(corsOptions));
 
 app.use(express.json());
@@ -58,18 +63,15 @@ const swaggerDocument = YAML.load('./swagger.yaml');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get('/health', async (req: Request, res: Response) => {
-  try{
+  try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'OK', db: 'connected', timestamp: new Date().toISOString() });
-  }
-  catch{
+  } catch {
     res.status(503).json({ status: 'ERROR', db: 'disconnected', timestamp: new Date().toISOString() });
   }
- 
 });
 
 app.use(globalLimiter);
-app.use('/api', apiLimiter);
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', userRoutes);
