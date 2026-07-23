@@ -185,6 +185,13 @@ enum TipoMensaje { // formato
   PRESUPUESTO   // El bot / emprendedor envian presupuesto al cliente
 }
 
+enum estadoPresupuesto {
+  PENDIENTE
+  EN_PROCESO
+  ENVIADO
+  CONCRETADO
+  RECHAZADO
+}
 model RegistroActividad {
   id          String   @id @default(uuid())
   usuarioId   String
@@ -231,6 +238,7 @@ model Consulta {
   mensajes           Mensaje[]
   productos          ConsultaProducto[]
   Usuario            Usuario[]
+  presupuestos       Presupuesto[]
 
   @@index([botId, fechaActualizacion])
   @@index([sessionId])
@@ -286,4 +294,24 @@ model ConsultaProducto {
   fecha      DateTime @default(now())
 
   @@unique([consultaId, productoId])
+}
+
+model Presupuesto {
+  id                Int               @id @default(autoincrement())
+  estado            estadoPresupuesto @default(PENDIENTE)
+  linkPdf           String?
+  
+  fechaEmision      DateTime          @default(now())
+  validezDias       Int               @default(10)
+  fechaVencimiento  DateTime
+  
+  // Aquí guardaremos la "foto" de lo que se cotizó
+  detalle           Json              
+  
+  // Relación con Consulta
+  consultaId        String
+  consulta   Consulta @relation(fields: [consultaId], references: [id])
+  
+  fechaCreacion      DateTime     @default(now())
+  fechaActualizacion DateTime     @updatedAt
 }

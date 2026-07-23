@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma';
 import { enviarEventosQueue } from './telemetry.service'; 
 import { TipoMensaje, RolEmisor } from '@prisma/client';
+import { crearYEnviarPresupuesto } from './presupuesto.service';
 
 export const procesarAccionBot = async (
   accion: string,
@@ -182,7 +183,7 @@ export const procesarAccionBot = async (
           }
         });
 
-        await prisma.lead.create({
+        await tx.lead.create({
           data: {
             nombre: nombreGuardado,
             telefono: telefonoIngresado,
@@ -191,10 +192,9 @@ export const procesarAccionBot = async (
           }
         });
 
-        await prisma.consulta.update({
+        await tx.consulta.update({
           where: { id: consultaActiva.id },
           data: {
-            Usuario: { connect: { id: telefonoIngresado } },
             tipoConsulta: tipoConsultaFinal,
             asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
             descripcion: descripcionConsulta,
@@ -220,6 +220,26 @@ export const procesarAccionBot = async (
 
         if (flujoDestino === 'PRESUPUESTO' || flujoDestino === 'COTIZACION') {
           let msgExito = '';
+          let rutaPdfGenerado = null;
+
+          try {
+            // 1. Mapeamos el 'carrito' que ya venímos arrastrando en la memoria del bot
+            const itemsPresupuesto = carrito.map((item: any) => ({
+              nombre: item.nombre || 'Producto sin nombre',
+              cantidad: Number(item.cantidad) || 1,
+              precioUnitario: Number(item.precio) || 0
+            }));
+
+            // 2. Llamamos al servicio con el ID de la consulta real y los items
+            rutaPdfGenerado = await crearYEnviarPresupuesto(
+              consultaActiva.id, 
+              itemsPresupuesto
+            );
+            console.log(`[EXITO] PDF generado en: ${rutaPdfGenerado}`);
+
+          } catch (error) {
+            console.error("[ERROR] Falló la generación del PDF:", error);
+          }
 
           // Acá cambiamos dinámicamente lo que lee el cliente
           if (requiereCotizacionManual || flujoDestino === 'COTIZACION') {
@@ -232,7 +252,8 @@ export const procesarAccionBot = async (
             respuesta: msgExito,
             botones: [{ id: 'btn_volver', texto: 'Volver al menú', accion: 'VOLVER_MENU' }],
             requiereInput: false,
-            contexto: 'FINALIZADO'
+            contexto: 'FINALIZADO',
+            archivoAdjunto: rutaPdfGenerado
           };
         }
       return {
