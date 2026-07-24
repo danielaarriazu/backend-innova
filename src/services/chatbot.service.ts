@@ -183,12 +183,20 @@ export const procesarAccionBot = async (
           }
         });
 
-        await tx.lead.create({
-          data: {
+        await tx.lead.upsert({
+          where: { 
+              consultaId: consultaActiva.id 
+            },
+            update: {
+              nombre: nombreGuardado,
+              telefono: telefonoIngresado,
+              mensajeId: mensajeTelefono.id 
+          },
+          create:{
             nombre: nombreGuardado,
             telefono: telefonoIngresado,
             consultaId: consultaActiva.id,
-            mensajeId: mensajeTelefono.id 
+            mensajeId: mensajeTelefono.id
           }
         });
 
