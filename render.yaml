@@ -16,6 +16,8 @@ services:
         sync: false 
       - key: GOOGLE_CLIENT_ID
         sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
@@ -26,9 +28,5 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-        key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false  
       - key: FRONTEND_URLS
         sync: false
