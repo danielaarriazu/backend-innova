@@ -21,6 +21,7 @@ import publicRoutes from './routes/public.routes';
 import chatbotRoutes from './routes/chatbot.routes';
 import consultationRoutes from './routes/consultation.routes';
 import mensajeRoutes from './routes/mensaje.routes';
+import presupuestoRoutes from './routes/presupuesto.routes';
 
 const app = express();
 
@@ -84,6 +85,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/mensajes', mensajeRoutes);
+app.use('/api/presupuesto', presupuestoRoutes);
 app.use(errorHandler);
 
 export default app;
