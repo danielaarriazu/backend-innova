@@ -117,6 +117,18 @@ components:
         derivacionAutomatica:
           type: boolean
           example: false
+        colorPrimario:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          default: "#13A8A2"
+          example: "#13A8A2"
+          description: Color primario del chatbot en formato hexadecimal #RRGGBB.
+        colorSecundario:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          default: "#1372A8"
+          example: "#1372A8"
+          description: Color secundario del chatbot en formato hexadecimal #RRGGBB.
         fechaCreacion:
           type: string
           format: date-time
@@ -192,6 +204,11 @@ components:
         precio:
           type: number
           example: 8500.00
+        requiereCotizacion:
+          type: boolean
+          default: false
+          description: Indica si el producto se muestra con precio a convenir.
+          example: false
         stock:
           type: integer
           example: 45
@@ -741,6 +758,16 @@ paths:
                 derivacionAutomatica:
                   type: boolean
                   example: false
+                colorPrimario:
+                  type: string
+                  pattern: '^#[0-9A-Fa-f]{6}$'
+                  description: Color primario opcional. Se normaliza a mayúsculas.
+                  example: "#13A8A2"
+                colorSecundario:
+                  type: string
+                  pattern: '^#[0-9A-Fa-f]{6}$'
+                  description: Color secundario opcional. Se normaliza a mayúsculas.
+                  example: "#1372A8"
             examples:
               activar_bot:
                 summary: Activar el bot y configurar nombre
@@ -764,6 +791,8 @@ paths:
                   mensajeFueraHorario: "Estamos fuera de horario, te respondemos pronto."
                   respuestaDerivacion: "Te paso con una asesora, ¡ya te atienden!"
                   derivacionAutomatica: false
+                  colorPrimario: "#13A8A2"
+                  colorSecundario: "#1372A8"
       responses:
         '200':
           description: Configuración actualizada
@@ -781,7 +810,15 @@ paths:
                   configuracion:
                     $ref: '#/components/schemas/ConfiguracionBot'
         '400':
-          description: Validación fallida
+          description: Validación fallida, incluido un color sin formato hexadecimal #RRGGBB.
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Los datos enviados no son válidos"
+                detalles:
+                  - campo: "colorPrimario"
+                    mensaje: "El color debe tener formato hexadecimal #RRGGBB"
         '401':
           description: No autenticado
         '404':
@@ -1527,6 +1564,42 @@ paths:
           description: No autenticado
 
   /api/products/{id}:
+    get:
+      tags: [Productos]
+      summary: Obtener un producto por ID
+      description: |
+        Devuelve un producto del catÃ¡logo del usuario autenticado.
+        No permite acceder a productos asociados a otro negocio.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID del producto
+          example: "e5f6a7b8-c9d0-1234-abcd-567890123456"
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  producto:
+                    $ref: '#/components/schemas/Producto'
+        '400':
+          description: ID invÃ¡lido
+        '401':
+          description: No autenticado
+        '404':
+          description: Producto no encontrado o perteneciente a otro negocio
+
     put:
       tags: [Productos]
       summary: Actualizar un producto
@@ -1948,6 +2021,22 @@ paths:
                   data:
                     type: object
                     properties:
+                      sessionId: { type: string, format: uuid }
+                      hasHistory: { type: boolean }
+                      botData:
+                        type: object
+                        properties:
+                          botId: { type: string, format: uuid }
+                          nombre: { type: string }
+                          mensajeBienvenida: { type: string }
+                          colorPrimario:
+                            type: string
+                            pattern: '^#[0-9A-Fa-f]{6}$'
+                            example: "#13A8A2"
+                          colorSecundario:
+                            type: string
+                            pattern: '^#[0-9A-Fa-f]{6}$'
+                            example: "#1372A8"
                       botId: { type: string, format: uuid }
                       nombre: { type: string }
                       mensajeBienvenida: { type: string }

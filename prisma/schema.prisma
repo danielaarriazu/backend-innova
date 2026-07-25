@@ -57,6 +57,8 @@ model ConfiguracionBot {
   mensajeFueraHorario  String? @db.Text
   respuestaDerivacion  String? @db.Text
   derivacionAutomatica Boolean @default(false)
+  colorPrimario        String  @default("#13A8A2")
+  colorSecundario      String  @default("#1372A8")
   slug                 String? @unique
   slugPersonalizado    Boolean @default(false)
   slugEditadoEn        DateTime?

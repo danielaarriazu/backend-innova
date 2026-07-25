@@ -9,6 +9,15 @@ const obtenerBotDeUsuario = async (usuarioId: string) => {
   return bot;
 };
 
+const obtenerProductoDeUsuario = async (usuarioId: string, productoId: string) => {
+  const bot = await obtenerBotDeUsuario(usuarioId);
+  const producto = await prisma.producto.findFirst({
+    where: { id: productoId, botId: bot.id }
+  });
+  if (!producto) throw new Error('PRODUCT_NOT_FOUND');
+  return producto;
+};
+
 export const crearProducto = async (data: CreateProductInput) => {
   const bot = await obtenerBotDeUsuario(data.usuarioId);
  
@@ -18,6 +27,7 @@ export const crearProducto = async (data: CreateProductInput) => {
       nombre: data.nombre.trim(),
       descripcion: data.descripcion?.trim(),
       precio: data.precio,
+      requiereCotizacion: data.requiereCotizacion ?? false,
       stock: data.stock ?? 0,
       urlImagen: data.urlImagen?.trim(),
       activo: data.activo ?? true
@@ -33,6 +43,10 @@ export const crearProducto = async (data: CreateProductInput) => {
   );
  
   return nuevoProducto;
+};
+
+export const obtenerProducto = async (usuarioId: string, productoId: string) => {
+  return obtenerProductoDeUsuario(usuarioId, productoId);
 };
 
 export const obtenerProductos = async (usuarioId: string, filtros: GetProductsInput) => {
@@ -70,20 +84,23 @@ export const obtenerProductos = async (usuarioId: string, filtros: GetProductsIn
 };
 
 export const actualizarProducto = async (data: UpdateProductInput) => {
-  const bot = await obtenerBotDeUsuario(data.usuarioId);
- 
-  const productoExistente = await prisma.producto.findFirst({
-    where: { id: data.productoId, botId: bot.id }
-  });
- 
-  if (!productoExistente) throw new Error('PRODUCT_NOT_FOUND');
+  const productoExistente = await obtenerProductoDeUsuario(data.usuarioId, data.productoId);
+
+  const precioFinal = data.precio !== undefined ? data.precio : productoExistente.precio;
+  const requiereCotizacionFinal = data.requiereCotizacion
+    ?? productoExistente.requiereCotizacion;
+
+  if (!requiereCotizacionFinal && Number(precioFinal) <= 0) {
+    throw new Error('FIXED_PRICE_REQUIRED');
+  }
  
   const productoActualizado = await prisma.producto.update({
     where: { id: data.productoId },
     data: {
       nombre: data.nombre ? data.nombre.trim() : productoExistente.nombre,
       descripcion: data.descripcion !== undefined ? data.descripcion?.trim() : productoExistente.descripcion,
-      precio: data.precio !== undefined ? data.precio : productoExistente.precio,
+      precio: precioFinal,
+      requiereCotizacion: requiereCotizacionFinal,
       stock: data.stock !== undefined ? data.stock : productoExistente.stock,
       urlImagen: data.urlImagen !== undefined ? data.urlImagen?.trim() : productoExistente.urlImagen,
       activo: data.activo !== undefined ? data.activo : productoExistente.activo
@@ -102,13 +119,7 @@ export const actualizarProducto = async (data: UpdateProductInput) => {
 };
  
 export const eliminarProducto = async (data: DeleteProductInput) => {
-  const bot = await obtenerBotDeUsuario(data.usuarioId);
- 
-  const productoExistente = await prisma.producto.findFirst({
-    where: { id: data.productoId, botId: bot.id }
-  });
- 
-  if (!productoExistente) throw new Error('PRODUCT_NOT_FOUND');
+  const productoExistente = await obtenerProductoDeUsuario(data.usuarioId, data.productoId);
  
   await prisma.producto.delete({ where: { id: data.productoId } });
  

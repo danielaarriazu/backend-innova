@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, {
+    error: 'El color debe tener formato hexadecimal #RRGGBB',
+  })
+  .transform((value) => value.toUpperCase());
+
 export const updateBotSchema = z.object({
   activo: z.preprocess((val) => {
     if (val === 'true') return true;
@@ -63,6 +70,10 @@ export const updateBotSchema = z.object({
   derivacionAutomatica: z
     .boolean()
     .optional(),
+
+  colorPrimario: hexColorSchema.optional(),
+
+  colorSecundario: hexColorSchema.optional(),
 });
 
 export const updateSlugSchema = z.object({
