@@ -58,6 +58,8 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',
+      colorPrimario: bot.colorPrimario,
+      colorSecundario: bot.colorSecundario,
     }
   };
 };
