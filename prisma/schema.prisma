@@ -132,18 +132,18 @@ model Producto {
 }
 
 model SesionChat {
-  id    String           @id @default(uuid())
-  botId String
-  bot   ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  id                 String           @id @default(uuid())
+  botId              String
+  bot                ConfiguracionBot @relation(fields: [botId], references: [id], onDelete: Cascade)
 
-  numeroCliente String
-  estado        EstadoChat @default(BOT_ACTIVO)
+  sessionId          String
+  estado             EstadoChat @default(BOT_ACTIVO)
 
   fechaCreacion      DateTime @default(now())
   fechaActualizacion DateTime @updatedAt
 
   // Se actualizó aquí también a botId y numeroCliente
-  @@unique([botId, numeroCliente])
+  @@unique([botId, sessionId])
 }
 
 // Distintos roles que se maneja actualmente
