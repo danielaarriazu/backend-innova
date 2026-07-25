@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getFAQsPublicas, getChatInit } from '../controllers/public.controller';
+import { getFAQsPublicas, getChatInit, getProductosPublicos } from '../controllers/public.controller';
 import {
   addPublicConsultationMessage,
   createPublicConsultation,
@@ -19,6 +19,9 @@ router.get('/chatbot/:slug/faqs', getFAQsPublicas);
 
 // Endpoint público: para inicializar el chat (saludo y botones)
 router.get('/chatbot/:slug/init', getChatInit);
+
+// Endpoint público: para obtener productos activos del catálogo
+router.get('/chatbot/:slug/products', getProductosPublicos);
 
 // Endpoints públicos: persistencia de la conversación del visitante.
 router.post(

@@ -1,6 +1,23 @@
 import prisma from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
+export const obtenerProductosPublicos = async (slug: string) => {
+  const bot = await prisma.configuracionBot.findUnique({
+    where: { slug },
+  });
+
+  if (!bot || !bot.activo) {
+    throw new Error('BOT_NOT_FOUND');
+  }
+
+  const productos = await prisma.producto.findMany({
+    where: { botId: bot.id, activo: true },
+    orderBy: { fechaCreacion: 'desc' },
+  });
+
+  return productos;
+};
+
 export const obtenerFAQsPublicas = async (slug: string) => {
   const bot = await prisma.configuracionBot.findUnique({
     where: { slug },
