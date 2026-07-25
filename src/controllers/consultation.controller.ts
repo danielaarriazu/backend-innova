@@ -101,3 +101,20 @@ export const addEntrepreneurMessage = async (req: Request, res: Response, next: 
     if (!handleKnownError(error, res)) next(error);
   }
 };
+export const updateChatControl = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Usamos el id del usuario autenticado y el id de la consulta/sesion
+    const { estado } = req.body; 
+    
+    // Llamamos al servicio (que crearemos en el paso 2)
+    const sesion = await consultationService.actualizarControlChat({
+      usuarioId: req.usuario!.id,
+      consultaId: req.params.id, // Asumiendo que pasas el ID de la consulta por URL
+      estado,
+    });
+
+    res.status(200).json({ success: true, message: 'Control de chat actualizado.', sesion });
+  } catch (error: unknown) {
+    if (!handleKnownError(error, res)) next(error);
+  }
+};

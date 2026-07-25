@@ -3,7 +3,8 @@ import {
   getConsultation,
   getConsultations,
   updateConsultationStatus,
-  addEntrepreneurMessage
+  addEntrepreneurMessage,
+  updateChatControl
 } from '../controllers/consultation.controller';
 import { authorize } from '../middlewares/authorize.middleware';
 import { verificarToken } from '../middlewares/auth.middleware';
@@ -16,4 +17,5 @@ router.get('/', verificarToken, authorize('EMPRENDEDOR'), getConsultations);
 router.get('/:id', verificarToken, authorize('EMPRENDEDOR'), validate(consultationParamsSchema, 'params'), getConsultation);
 router.patch('/:id/estado', verificarToken, authorize('EMPRENDEDOR'), validate(consultationParamsSchema, 'params'), validate(updateConsultationStatusSchema), updateConsultationStatus);
 router.post('/:id/mensajes', verificarToken, authorize('EMPRENDEDOR'), validate(consultationParamsSchema, 'params'), addEntrepreneurMessage);
+router.patch('/:id/control-chat', verificarToken, authorize('EMPRENDEDOR'), validate(consultationParamsSchema, 'params'), updateChatControl);
 export default router;

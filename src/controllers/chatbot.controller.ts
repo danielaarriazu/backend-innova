@@ -18,9 +18,9 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
 
     let sesion = await prisma.sesionChat.findUnique({
       where: {
-        botId_numeroCliente: {
+        botId_sessionId: {
           botId: botId,
-          numeroCliente: sessionId 
+          sessionId: sessionId 
         }
       }
     });
@@ -29,7 +29,7 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
       sesion = await prisma.sesionChat.create({
         data: {
           botId: botId,
-          numeroCliente: sessionId,
+          sessionId: sessionId,
           estado: EstadoChat.BOT_ACTIVO
         }
       });
