@@ -51,7 +51,9 @@ export const actualizarConfiguracionBot = async (data: UpdateBotInput) => {
       logoUrl: data.logoUrl?.trim(),
       mensajeBienvenida: data.mensajeBienvenida?.trim(),
       mensajeFueraHorario: data.mensajeFueraHorario?.trim(),
-      derivacionAutomatica: data.derivacionAutomatica
+      derivacionAutomatica: data.derivacionAutomatica,
+      colorPrimario: data.colorPrimario,
+      colorSecundario: data.colorSecundario,
     }
   });
 

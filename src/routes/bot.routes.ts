@@ -13,7 +13,14 @@ router.get('/', verificarToken, authorize('EMPRENDEDOR'), getBotConfig);
 router.put('/', verificarToken, authorize('EMPRENDEDOR'), validate(updateBotSchema), updateBotConfig);
 
 // "imagenLogo" es el nombre exacto del campo que el Frontend debe mandar
-router.patch('/config', verificarToken, authorize('EMPRENDEDOR'), uploadLogo.single('imagenLogo'), actualizarConfig);
+router.patch(
+  '/config',
+  verificarToken,
+  authorize('EMPRENDEDOR'),
+  uploadLogo.single('imagenLogo'),
+  validate(updateBotSchema),
+  actualizarConfig,
+);
 
 router.patch('/slug', verificarToken, authorize('EMPRENDEDOR'), validate(updateSlugSchema), actualizarSlug);
 

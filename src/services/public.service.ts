@@ -71,6 +71,8 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
       logo: bot.logoUrl,
       mensajeBienvenida: bot.mensajeBienvenida || '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
       respuestaDerivacion: bot.respuestaDerivacion,
+      colorPrimario: bot.colorPrimario,
+      colorSecundario: bot.colorSecundario,
       rubroId: bot.rubroId,
       rubroNombre: bot.rubro?.nombre,
       slug: bot.slug,
@@ -88,5 +90,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
     botId: bot.id,
     nombre: bot.nombreNegocio || 'Asistente Virtual',
     mensajeBienvenida: bot.mensajeBienvenida || '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
+    colorPrimario: bot.colorPrimario,
+    colorSecundario: bot.colorSecundario,
   };
 };
