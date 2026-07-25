@@ -75,17 +75,17 @@ app.get('/health', async (req: Request, res: Response) => {
 app.use(globalLimiter);
 
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/faq-categories', faqCategoryRoutes);
-app.use('/api/faqs', faqRoutes);
-app.use('/api/bot', botRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/telemetry', telemetryRoutes);
-app.use('/api/public', publicRoutes);
-app.use('/api/chatbot', chatbotRoutes);
-app.use('/api/consultations', consultationRoutes);
-app.use('/api/mensajes', mensajeRoutes);
-app.use('/api/presupuesto', presupuestoRoutes);
+app.use('/api/user', apiLimiter, userRoutes);
+app.use('/api/faq-categories', apiLimiter, faqCategoryRoutes);
+app.use('/api/faqs', apiLimiter, faqRoutes);
+app.use('/api/bot', apiLimiter, botRoutes);
+app.use('/api/products', apiLimiter, productRoutes);
+app.use('/api/telemetry', apiLimiter, telemetryRoutes);
+app.use('/api/public', apiLimiter, publicRoutes);
+app.use('/api/chatbot', apiLimiter, chatbotRoutes);
+app.use('/api/consultations', apiLimiter, consultationRoutes);
+app.use('/api/mensajes', apiLimiter, mensajeRoutes);
+app.use('/api/presupuesto', apiLimiter, presupuestoRoutes);
 app.use(errorHandler);
 
 export default app;
