@@ -204,6 +204,11 @@ components:
         precio:
           type: number
           example: 8500.00
+        requiereCotizacion:
+          type: boolean
+          default: false
+          description: Indica si el producto se muestra con precio a convenir.
+          example: false
         stock:
           type: integer
           example: 45
@@ -1559,6 +1564,42 @@ paths:
           description: No autenticado
 
   /api/products/{id}:
+    get:
+      tags: [Productos]
+      summary: Obtener un producto por ID
+      description: |
+        Devuelve un producto del catÃ¡logo del usuario autenticado.
+        No permite acceder a productos asociados a otro negocio.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID del producto
+          example: "e5f6a7b8-c9d0-1234-abcd-567890123456"
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  producto:
+                    $ref: '#/components/schemas/Producto'
+        '400':
+          description: ID invÃ¡lido
+        '401':
+          description: No autenticado
+        '404':
+          description: Producto no encontrado o perteneciente a otro negocio
+
     put:
       tags: [Productos]
       summary: Actualizar un producto

@@ -52,6 +52,25 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+export const getProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const producto = await productService.obtenerProducto(req.usuario!.id, req.params.id);
+    res.status(200).json({ success: true, producto });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'PRODUCT_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'El producto no existe o no pertenece a tu catálogo.' });
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
 export const updateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (req.file) {
@@ -74,6 +93,10 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       }
       if (error.message === 'PRODUCT_NOT_FOUND') {
         res.status(404).json({ success: false, error: 'El producto no existe o no pertenece a tu catálogo.' });
+        return;
+      }
+      if (error.message === 'FIXED_PRICE_REQUIRED') {
+        res.status(400).json({ success: false, error: 'Los productos con precio fijo deben tener un precio mayor a 0.' });
         return;
       }
     }

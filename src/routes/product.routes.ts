@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createProduct, getProducts, updateProduct, deleteProduct } from '../controllers/product.controller';
+import { createProduct, getProduct, getProducts, updateProduct, deleteProduct } from '../controllers/product.controller';
 import { verificarToken } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validator.middleware';
 import { authorize } from '../middlewares/authorize.middleware';
@@ -10,6 +10,7 @@ const router = Router();
 
 router.post('/', verificarToken, authorize('EMPRENDEDOR'), uploadProducto.single('imagen'), validate(createProductSchema), createProduct);
 router.get('/', verificarToken, authorize('EMPRENDEDOR'), validate(getProductsSchema,'query'), getProducts);
+router.get('/:id', verificarToken, authorize('EMPRENDEDOR'), validate(deleteProductSchema, 'params'), getProduct);
 router.put('/:id', verificarToken, authorize('EMPRENDEDOR'), uploadProducto.single('imagen'), validate(deleteProductSchema, 'params'),  validate(updateProductSchema), updateProduct);
 router.delete('/:id', verificarToken, authorize('EMPRENDEDOR'), validate(deleteProductSchema, 'params'),  deleteProduct);
 
