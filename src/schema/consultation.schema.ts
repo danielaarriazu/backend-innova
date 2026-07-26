@@ -32,7 +32,10 @@ export const addConsultationMessageSchema = z.object({
 });
 
 export const updateConsultationStatusSchema = z.object({
-  estado: z.enum(['nueva', 'en_proceso', 'cerrada']),
+  estado: z.enum([
+    'nueva', 'en_proceso', 'resuelta', 'cerrada',
+    'NUEVA', 'EN_PROCESO', 'RESUELTA', 'CERRADA'
+  ]).transform((val) => val.toLowerCase()), 
 });
 
 export const updatePublicContactSchema = z.object({
