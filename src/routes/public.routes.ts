@@ -16,13 +16,13 @@ import { getBySlugSchema, initBotSchema } from '../schema/public.schema';
 const router = Router();
 
 // Endpoint público: para obtener FAQs públicas
-router.get('/chatbot/:slug/faqs', validate(getBySlugSchema), getFAQsPublicas);
+router.get('/chatbot/:slug/faqs', validate(getBySlugSchema, 'all'), getFAQsPublicas);
 
 // Endpoint público: para obtener productos activos del catálogo
 router.get('/chatbot/:slug/products', getProductosPublicos);
 
 // Endpoint público: para inicializar el chat (saludo y botones)
-router.get('/chatbot/:slug/init', validate(initBotSchema), getChatInit);
+router.get('/chatbot/:slug/init', validate(initBotSchema, 'all'), getChatInit);
 
 // Endpoints públicos: persistencia de la conversación del visitante.
 router.post('/chatbot/:slug/consultations', validate(createConsultationSchema), createPublicConsultation);

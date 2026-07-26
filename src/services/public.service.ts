@@ -70,12 +70,15 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
 
     if (consultaPrevia) {
       hasHistory = true; 
-      finalSessionId = uuidv4(); 
-    }
+    } else {
+    // si tiene session pero no se encuentra en la bd
+    finalSessionId = uuidv4();
+  }
   } else {
     // Es la primera vez que entra al chat
     finalSessionId = uuidv4();
   }
+
   return {
     sessionId: finalSessionId,
     hasHistory,

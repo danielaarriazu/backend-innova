@@ -1,8 +1,16 @@
 import prisma from '../lib/prisma';
 import { enviarEventosQueue } from './telemetry.service'; 
-import { TipoMensaje, RolEmisor, EstadoChat } from '@prisma/client';
+import { TipoMensaje, RolEmisor, EstadoChat, EstadoConsulta } from '@prisma/client';
 import { crearYEnviarPresupuesto } from './presupuesto.service';
 import { ChatbotPayload, DatosCliente } from '../types/chatbot.type';
+
+const ACCIONES_QUE_INICIAN_PROCESO = [ 
+  'MOSTRAR_CATALOGO',
+  'MOSTRAR_FAQS',
+  'MOSTRAR_HORARIOS',
+  'DERIVAR_HUMANO',
+  'SOLICITAR_PRESUPUESTO', 
+];
 
 export const gestionarInteraccion = async (payload: ChatbotPayload) => {
   const { accion, sessionId, botId, datosCliente, contexto } = payload;
@@ -26,7 +34,13 @@ export const gestionarInteraccion = async (payload: ChatbotPayload) => {
   if (!consulta) {
     try {
       consulta = await prisma.consulta.create({
-        data: { sessionId, botId, tipoConsulta: 'BOT' }
+          data: { sessionId, 
+          botId, 
+          tipoConsulta: 'BOT',
+          asunto: 'INTERACCION_BOT',
+          descripcion: 'El cliente inició el bot.'
+        
+        }
       });
     } catch (prismaError: any) {
       throw new Error(`Error al crear la consulta en Prisma: ${prismaError.message}`);
@@ -35,6 +49,17 @@ export const gestionarInteraccion = async (payload: ChatbotPayload) => {
 
   if (!consulta) {
     throw new Error('Fallo crítico: No se pudo obtener ni crear la consulta en la BD');
+  }
+
+  if (consulta.estado === EstadoConsulta.NUEVA && ACCIONES_QUE_INICIAN_PROCESO.includes(accion)) {
+    consulta = await prisma.consulta.update({
+      where: { id: consulta.id },
+      data: { 
+        estado: EstadoConsulta.EN_PROCESO,
+        descripcion: 'El cliente está recorriendo las opciones'
+      
+      },
+    });
   }
 
   const esAccion = !datosCliente?.accion;

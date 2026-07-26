@@ -12,5 +12,14 @@ export const initBotSchema = z.object({
   }),
   query: z.object({
     sessionId: z.string().optional(),
+    hasHistory: z.enum(['true', 'false']).optional(),
   }),
+}).superRefine((data, ctx) => {
+  if (data.query.hasHistory === 'true' && !data.query.sessionId) {
+    ctx.addIssue({
+      code: "custom",
+      message: "El sessionId es obligatorio para recuperar el historial de chat",
+      path: ["query", "sessionId"] 
+    });
+  }
 });
