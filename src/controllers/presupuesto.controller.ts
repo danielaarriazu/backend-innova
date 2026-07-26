@@ -4,26 +4,14 @@ import { ItemPresupuesto } from '../services/pdf.service';
 
 export const cotizarPresupuesto = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Obtenemos el ID de la URL
-    const { id } = req.params;
-    const presupuestoId = Number(id); // El servicio espera un number
     
-    if (isNaN(presupuestoId)) {
-      res.status(400).json({ error: 'El ID del presupuesto debe ser un número válido.' });
-      return;
-    }
-
-    // Items con precios del cuerpo de la petición
-    const { itemsCotizados } = req.body;
-
-    if (!itemsCotizados || !Array.isArray(itemsCotizados)) {
-      res.status(400).json({ error: 'Debes enviar un array de itemsCotizados válido.' });
-      return;
-    }
+    const presupuestoId = Number(req.params.id);
+    // Items con precios 
+    const itemsCotizados = req.body.itemsCotizados as ItemPresupuesto[];
 
     const rutaPdf = await cotizarYActualizarPresupuesto(
       presupuestoId, 
-      itemsCotizados as ItemPresupuesto[]
+      itemsCotizados
     );
 
     res.status(200).json({

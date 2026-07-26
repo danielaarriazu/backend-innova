@@ -1,10 +1,9 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { generarPresupuestoFormal, ItemPresupuesto, DatosNegocio } from './pdf.service';
 import {v2 as cloudinary} from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
-
-const prisma = new PrismaClient();
 
 const diasValidez = 10;
 const fechaVencimiento = new Date();
@@ -59,50 +58,37 @@ export async function generarPdfDesdeBaseDeDatos(presupuestoId: number): Promise
     throw error;
   }
 }
-  
-export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPresupuesto[]) {
-  
-  const nuevoPresupuesto = await prisma.presupuesto.create({
-    data: {
-      consultaId: consultaId, // Ahora es String, como lo arreglamos recién
-      estado: 'ENVIADO', 
-      detalle: items as unknown as Prisma.InputJsonArray,
-      validezDias: diasValidez,
-      fechaVencimiento: fechaVencimiento
-    }
-  });
 
-  const rutaPdf = await generarPdfDesdeBaseDeDatos(nuevoPresupuesto.id);
-
+async function gestionarSubidaNube(presupuestoId: number, rutaPdf: string, resourceType: 'auto' | 'raw'): Promise<string> {
   const nombreParaNube = path.basename(rutaPdf, '.pdf');
-
   let urlCloudinary = '';
+
   try {
     const uploadResult = await cloudinary.uploader.upload(rutaPdf, {
-      folder: 'presupuestos_clientes', // Lo guardamos en una carpeta
-      resource_type: 'auto', 
-      public_id: nombreParaNube, // Nombre único
-      format: 'pdf' // Aseguramos que sea PDF
+      folder: 'presupuestos_clientes',
+      resource_type: resourceType, 
+      public_id: nombreParaNube,
+      format: 'pdf'
     });
     
-    urlCloudinary = uploadResult.secure_url; // Obtenemos el link HTTPS
+    urlCloudinary = uploadResult.secure_url;
   } catch (error) {
     console.error('[ERROR] Falló la subida a Cloudinary:', error);
     throw new Error('Se generó el PDF pero no se pudo subir a la nube.');
   } finally {
-  // Borramos el archivo local para mantener limpio el servidor
-  try {
-    if (fs.existsSync(rutaPdf)) {
-      fs.unlinkSync(rutaPdf);
+    try {
+      if (fs.existsSync(rutaPdf)) {
+        fs.unlinkSync(rutaPdf);
+      }
+    } catch (error) {
+      console.warn('[WARNING] No se pudo borrar el PDF temporal:', error);
     }
-  } catch (error) {
-    console.warn('[WARNING] No se pudo borrar el PDF temporal:', error);
   }
-}
+
   if (urlCloudinary) {
     try {
       await prisma.presupuesto.update({
-        where: { id: nuevoPresupuesto.id },
+        where: { id: presupuestoId },
         data: { linkPdf: urlCloudinary }
       });
     } catch (error) {
@@ -111,6 +97,27 @@ export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPre
   }
 
   return urlCloudinary;
+}
+  
+export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPresupuesto[]) {
+  
+  const requiereCotizacion = items.some(item => !item.precioUnitario || item.precioUnitario === 0);
+
+  const estadoInicial = requiereCotizacion ? 'PENDIENTE' : 'ENVIADO';
+  
+  const nuevoPresupuesto = await prisma.presupuesto.create({
+    data: {
+      consultaId: consultaId, 
+      estado: estadoInicial, 
+      detalle: items as unknown as Prisma.InputJsonArray,
+      validezDias: diasValidez,
+      fechaVencimiento: fechaVencimiento
+    }
+  });
+
+  const rutaPdf = await generarPdfDesdeBaseDeDatos(nuevoPresupuesto.id);
+
+  return await gestionarSubidaNube(nuevoPresupuesto.id, rutaPdf, 'auto');
 }
 
 export async function cotizarYActualizarPresupuesto(
@@ -129,42 +136,5 @@ export async function cotizarYActualizarPresupuesto(
 
   const rutaPdfGenerado = await generarPdfDesdeBaseDeDatos(presupuestoId);
 
-  const nombreParaNube = path.basename(rutaPdfGenerado, '.pdf');
-
-  let urlCloudinary = '';
-  try {
-    const uploadResult = await cloudinary.uploader.upload(rutaPdfGenerado, {
-      folder: 'presupuestos_clientes', // Lo guardamos en una carpeta
-      resource_type: 'raw', 
-      public_id: nombreParaNube, // Nombre único
-      format: 'pdf' // Aseguramos que sea PDF
-    });
-    
-    urlCloudinary = uploadResult.secure_url; // Obtenemos el link HTTPS
-  } catch (error) {
-    console.error('[ERROR] Falló la subida a Cloudinary:', error);
-    throw new Error('Se generó el PDF pero no se pudo subir a la nube.');
-  } finally {
-  // Borramos el archivo local para mantener limpio el servidor
-  try {
-    if (fs.existsSync(rutaPdfGenerado)) {
-      fs.unlinkSync(rutaPdfGenerado);
-    }
-  } catch (error) {
-    console.warn('[WARNING] No se pudo borrar el PDF temporal:', error);
-  }
-}
-
-if (urlCloudinary) {
-    try {
-      await prisma.presupuesto.update({
-        where: { id: presupuestoId },
-        data: { linkPdf: urlCloudinary }
-      });
-    } catch (error) {
-      console.error('[ERROR] Se subió el PDF pero falló al guardar la URL en la BD:', error);
-    }
-  }
-
-  return urlCloudinary;
+  return await gestionarSubidaNube(presupuestoId, rutaPdfGenerado, 'auto');
 }
