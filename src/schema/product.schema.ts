@@ -80,6 +80,12 @@ export const updateProductSchema = z.object({
     .optional()
     .nullable(), // permite poner null para borrar la descripción
 
+  requiereCotizacion: z.preprocess((val) => {
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return val;
+  }, z.boolean().optional()),
+
   precio: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === '') return undefined;

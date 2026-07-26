@@ -11,6 +11,8 @@ export interface UpdateBotInput {
   mensajeBienvenida?: string;
   mensajeFueraHorario?: string;
   derivacionAutomatica?: boolean;
+  colorPrimario?: string;
+  colorSecundario?: string;
   ip?: string;
   dispositivo?: string;
 }

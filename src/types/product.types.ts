@@ -2,7 +2,8 @@ export interface CreateProductInput {
   usuarioId: string;
   nombre: string;
   descripcion?: string;
-  precio: number;
+  precio?: number;
+  requiereCotizacion: boolean;
   stock?: number;
   urlImagen?: string;
   activo?: boolean;
@@ -14,10 +15,11 @@ export interface UpdateProductInput {
   usuarioId: string;
   productoId: string;
   nombre?: string;
-  descripcion?: string;
+  descripcion?: string | null;
   precio?: number;
+  requiereCotizacion?: boolean;
   stock?: number;
-  urlImagen?: string;
+  urlImagen?: string | null;
   activo?: boolean;
   ip?: string;
   dispositivo?: string;
