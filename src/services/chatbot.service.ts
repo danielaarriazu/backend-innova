@@ -1,7 +1,79 @@
 import prisma from '../lib/prisma';
 import { enviarEventosQueue } from './telemetry.service'; 
-import { TipoMensaje, RolEmisor } from '@prisma/client';
+import { TipoMensaje, RolEmisor, EstadoChat } from '@prisma/client';
 import { crearYEnviarPresupuesto } from './presupuesto.service';
+import { ChatbotPayload, DatosCliente } from '../types/chatbot.type';
+
+export const gestionarInteraccion = async (payload: ChatbotPayload) => {
+  const { accion, sessionId, botId, datosCliente, contexto } = payload;
+
+  let consulta = await prisma.consulta.findFirst({
+    where: { sessionId: sessionId, botId: botId }
+  });
+
+  let sesion = await prisma.sesionChat.findUnique({
+    where: {
+      botId_sessionId: { botId: botId, sessionId: sessionId }
+    }
+  });
+
+  if (!sesion) {
+    sesion = await prisma.sesionChat.create({
+      data: { botId, sessionId, estado: EstadoChat.BOT_ACTIVO }
+    });
+  }
+
+  if (!consulta) {
+    try {
+      consulta = await prisma.consulta.create({
+        data: { sessionId, botId, tipoConsulta: 'BOT' }
+      });
+    } catch (prismaError: any) {
+      throw new Error(`Error al crear la consulta en Prisma: ${prismaError.message}`);
+    }
+  }
+
+  if (!consulta) {
+    throw new Error('Fallo crítico: No se pudo obtener ni crear la consulta en la BD');
+  }
+
+  const esAccion = !datosCliente?.accion;
+  const contenidoCliente = esAccion ? accion : (datosCliente.texto || '');
+  
+  await prisma.mensaje.create({
+    data: {
+      consultaId: consulta.id,
+      emisor: RolEmisor.CLIENTE,
+      tipoMensaje: esAccion ? TipoMensaje.ACCION : TipoMensaje.TEXTO,
+      contenido: contenidoCliente
+    }
+  });
+
+  // Si un humano está atendiendo, cortamos acá
+  if (sesion.estado === EstadoChat.HUMANO_ATENDIENDO) {
+    return { 
+      silenciado: true, 
+      mensaje: "El mensaje fue recibido y será leído por el humano." 
+    };
+  }
+
+  // Ejecutamos tu lógica original del bot
+  const resultado = await procesarAccionBot(accion, sessionId, botId, datosCliente, contexto);
+
+  // Guardamos la respuesta del bot en la BD
+  if (resultado && typeof resultado.respuesta === 'string') {
+    await prisma.mensaje.create({
+      data: {
+        consultaId: consulta.id,
+        emisor: RolEmisor.BOT,
+        tipoMensaje: TipoMensaje.TEXTO,
+        contenido: resultado.respuesta
+      }
+    });
+  }
+
+  return resultado;
+};
 
 export const procesarAccionBot = async (
   accion: string,
@@ -118,7 +190,7 @@ export const procesarAccionBot = async (
       }
 
       if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
-        const telefonoIngresado = datosCliente.texto;
+        const telefonoIngresado = datosCliente.texto || '';
         const nombreGuardado = datosCliente.datosAcumulados?.nombre || 'Cliente';
         const flujoDestino = contextoActual.split('ESPERANDO_TELEFONO_')[1];
         const carrito = datosCliente.datosAcumulados?.carrito || [];
