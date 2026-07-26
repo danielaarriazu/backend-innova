@@ -296,6 +296,86 @@ tags:
   - name: Público 
     description: Endpoints abiertos para el widget del chat  
 
+    PresupuestoItem:
+      type: object
+      required: [nombre, cantidad, precioUnitario, subtotal]
+      properties:
+        productoId:
+          type: string
+          format: uuid
+          nullable: true
+        nombre:
+          type: string
+          example: "Producto"
+        cantidad:
+          type: integer
+          minimum: 1
+          example: 2
+        precioUnitario:
+          type: number
+          format: double
+          minimum: 0
+          example: 1500
+        subtotal:
+          type: number
+          format: double
+          minimum: 0
+          example: 3000
+
+    Presupuesto:
+      type: object
+      required: [id, estado, consultaId, items, total, fechaEmision, fechaVencimiento, diasValidez]
+      properties:
+        id:
+          type: integer
+          example: 42
+        estado:
+          type: string
+          enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
+        consultaId:
+          type: string
+          format: uuid
+        consulta:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            asunto:
+              type: string
+              nullable: true
+            estado:
+              type: string
+            cliente:
+              type: object
+              nullable: true
+              properties:
+                nombre:
+                  type: string
+                telefono:
+                  type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PresupuestoItem'
+        total:
+          type: number
+          format: double
+          example: 3000
+        fechaEmision:
+          type: string
+          format: date-time
+        fechaVencimiento:
+          type: string
+          format: date-time
+        diasValidez:
+          type: integer
+          example: 7
+        linkPdf:
+          type: string
+          format: uri
+          nullable: true
+
 paths:
    # ==========================================================================
   # SISTEMA
@@ -1391,7 +1471,232 @@ paths:
         '404':
           description: FAQ no encontrada o ya eliminada
  
- # ==========================================================================
+  # ==========================================================================
+  # PRESUPUESTOS
+  # ==========================================================================
+  /api/presupuestos:
+    post:
+      tags: [Presupuestos]
+      summary: Crear un presupuesto
+      description: Crea un presupuesto para una consulta propia. La clave de idempotencia evita duplicados por reintentos.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consultaId, items, idempotencyKey]
+              properties:
+                consultaId:
+                  type: string
+                  format: uuid
+                diasValidez:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+                  default: 7
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 200
+                  example: "presupuesto-consulta-123-intento-1"
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [nombre, cantidad, precioUnitario]
+                    properties:
+                      productoId:
+                        type: string
+                        format: uuid
+                      nombre:
+                        type: string
+                      cantidad:
+                        type: integer
+                        minimum: 1
+                      precioUnitario:
+                        type: number
+                        minimum: 0
+      responses:
+        '201':
+          description: Presupuesto creado
+        '200':
+          description: Reintento idempotente; devuelve el presupuesto ya existente
+        '400':
+          description: Payload inválido
+        '401':
+          description: No autenticado
+        '403':
+          description: Rol no permitido
+        '404':
+          description: Consulta o producto inexistente o ajeno
+        '409':
+          description: Conflicto de idempotencia
+    get:
+      tags: [Presupuestos]
+      summary: Listar presupuestos del negocio autenticado
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        - in: query
+          name: estado
+          schema:
+            type: string
+            enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
+        - in: query
+          name: consultaId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Lista paginada; `presupuestos` es un arreglo vacío cuando no hay resultados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  presupuestos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Presupuesto'
+                  paginacion:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      totalPages: { type: integer }
+        '400':
+          description: Filtros inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: Rol no permitido
+
+  /api/presupuestos/{id}:
+    get:
+      tags: [Presupuestos]
+      summary: Obtener el detalle de un presupuesto propio
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Presupuesto encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  presupuesto:
+                    $ref: '#/components/schemas/Presupuesto'
+        '400':
+          description: ID inválido
+        '404':
+          description: Presupuesto inexistente o ajeno
+
+  /api/presupuestos/{id}/estado:
+    patch:
+      tags: [Presupuestos]
+      summary: Cambiar el estado de un presupuesto propio
+      description: |
+        Transiciones permitidas:
+        PENDIENTE → EN_PROCESO o RECHAZADO;
+        EN_PROCESO → ENVIADO o RECHAZADO;
+        ENVIADO → CONCRETADO o RECHAZADO.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: string
+                  enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
+      responses:
+        '200':
+          description: Estado actualizado
+        '400':
+          description: ID o estado inválido
+        '404':
+          description: Presupuesto inexistente o ajeno
+        '409':
+          description: Transición de estado no permitida
+
+  /api/presupuestos/{id}/cotizar:
+    put:
+      tags: [Presupuestos]
+      summary: Cotizar un presupuesto propio, generar PDF y marcarlo como ENVIADO
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemsCotizados]
+              properties:
+                diasValidez:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+                itemsCotizados:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [nombre, cantidad, precioUnitario]
+                    properties:
+                      productoId: { type: string, format: uuid }
+                      nombre: { type: string }
+                      cantidad: { type: integer, minimum: 1 }
+                      precioUnitario: { type: number, minimum: 0 }
+      responses:
+        '200':
+          description: Presupuesto cotizado, PDF generado y URL persistida
+        '400':
+          description: ID o payload inválido
+        '404':
+          description: Presupuesto inexistente o ajeno
+        '409':
+          description: Estado actual incompatible con la cotización
+
+  # ==========================================================================
   # PRODUCTOS
   # ==========================================================================
   /api/products:
