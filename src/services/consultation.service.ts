@@ -1,4 +1,4 @@
-import { CerradaPor, EstadoConsulta, RolEmisor, TipoMensaje, Prisma } from '@prisma/client';
+import { CerradaPor, EstadoConsulta, RolEmisor, TipoMensaje, EstadoChat, Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { AddConsultationMessageInput, CreateConsultationInput, UpdateConsultationStatusInput,} from '../types/consultation.types';
 import { registrarActividad } from './activity.service';
@@ -102,6 +102,28 @@ export const actualizarEstado = async (data: UpdateConsultationStatusInput) => {
     include: consultationInclude,
   });
 
+  if (data.estado === 'RESUELTA' || data.estado === 'CERRADA') {
+    if (consulta.sessionId) {
+      try {
+        await prisma.sesionChat.update({
+          where: {
+            botId_sessionId: {
+              botId: bot.id,
+              sessionId: consulta.sessionId,
+            },
+          },
+          data: {
+            estado: EstadoChat.BOT_ACTIVO, // Asegurate de tener importado EstadoChat si usás el enum estricto
+          },
+        });
+      } catch (error) {
+        // Capturamos el error de forma silenciosa para que, si por algún 
+        // motivo la sesión no existe, no falle la actualización de la consulta.
+        console.error(`Error al reactivar el bot para la sesión ${consulta.sessionId}:`, error);
+      }
+    }
+  }
+
   await registrarActividad(
     data.usuarioId,
     'CAMBIO_ESTADO_CONSULTA',
@@ -199,4 +221,34 @@ export const agregarMensajeEmprendedor = async (usuarioId: string, consultaId: s
     fechaCreacion: mensaje.fechaCreacion.toISOString(),
     fechaActualizacion: mensaje.fechaActualizacion.toISOString(),
   };
+};
+export const actualizarControlChat = async (params: { usuarioId: string; consultaId: string; estado: EstadoChat }) => {
+  const { consultaId, estado } = params;
+
+  const consulta = await prisma.consulta.findUnique({
+    where: { id: consultaId },
+    select: { botId: true, sessionId: true }
+  });
+
+  if (!consulta) {
+    throw new Error('CONSULTATION_NOT_FOUND');
+  }
+
+  if (!consulta.sessionId) {
+    throw new Error('La consulta no tiene un sessionId asociado.');
+  }
+  
+  const sesionActualizada = await prisma.sesionChat.update({
+    where: {
+      botId_sessionId: {
+        botId: consulta.botId,
+        sessionId: consulta.sessionId
+      }
+    },
+    data: {
+      estado
+    }
+  });
+
+  return sesionActualizada;
 };
