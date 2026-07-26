@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { cotizarYActualizarPresupuesto } from '../services/presupuesto.service';
-import { ItemPresupuesto } from '../services/pdf.service';
+import { ItemPresupuesto } from '../types/pdf.types';
 
 export const cotizarPresupuesto = async (req: Request, res: Response): Promise<void> => {
   try {

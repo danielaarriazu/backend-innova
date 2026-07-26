@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
-import { generarPresupuestoFormal, ItemPresupuesto, DatosNegocio } from './pdf.service';
+import { generarPresupuestoFormal } from './pdf.service';
+import { ItemPresupuesto, DatosNegocio } from '../types/pdf.types';
 import {v2 as cloudinary} from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
