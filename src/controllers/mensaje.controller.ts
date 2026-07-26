@@ -5,10 +5,6 @@ export const getHistorial = async (req: Request, res: Response) => {
   try {
     const { slug, sessionId } = req.params;
 
-    if (!slug || !sessionId) {
-      return res.status(400).json({ error: 'Faltan parámetros slug o sessionId' });
-    }
-
     const historial = await mensajeService.obtenerHistorialPorSesion(slug, sessionId);
     
     return res.status(200).json(historial);
