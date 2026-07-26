@@ -62,7 +62,7 @@ export const verificarToken = async (req: Request, res: Response, next: NextFunc
 };
 
 export interface AuthRequest extends Request {
-  usuarioId?: number;
+  usuarioId?: string;
 }
 
 export const verificarTokenOpcional = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -90,8 +90,8 @@ export const verificarTokenOpcional = async (req: AuthRequest, res: Response, ne
   }
   const queryUsuarioId = req.query.usuarioId as string;
   
-  if (queryUsuarioId && !isNaN(parseInt(queryUsuarioId))) {
-    req.usuarioId = parseInt(queryUsuarioId);
+  if (queryUsuarioId) {
+    req.usuarioId = queryUsuarioId;
   }
     next();
   } catch (error) {

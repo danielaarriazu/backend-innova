@@ -4,8 +4,8 @@ import { GetFaqsInput } from '../types/faq.types';
 import { DUPLICATE_FAQ_MESSAGE } from '../utils/normalizeFaqQuestion';
 
 const getRequestMeta = (req: Request) => ({
-  ip: req.ip ?? req.socket.remoteAddress,
-  dispositivo: req.headers['user-agent'] as string | undefined,
+  ip: req.ip || req.socket.remoteAddress || 'IP Desconocida',
+  dispositivo: req.headers['user-agent'] || 'Dispositivo Desconocido',
 });
 
 export const createFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
