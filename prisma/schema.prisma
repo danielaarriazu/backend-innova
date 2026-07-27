@@ -314,6 +314,8 @@ model Presupuesto {
   id                Int               @id @default(autoincrement())
   estado            estadoPresupuesto @default(PENDIENTE)
   linkPdf           String?
+  idempotencyKey    String?            @unique
+  total             Decimal            @default(0) @db.Decimal(14, 2)
   
   fechaEmision      DateTime          @default(now())
   validezDias       Int               @default(10)
@@ -330,4 +332,7 @@ model Presupuesto {
   
   fechaCreacion      DateTime     @default(now())
   fechaActualizacion DateTime     @updatedAt
+
+  @@index([consultaId, fechaCreacion])
+  @@index([estado, fechaCreacion])
 }

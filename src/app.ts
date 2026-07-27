@@ -85,7 +85,7 @@ app.use('/api/public', apiLimiter, publicRoutes);
 app.use('/api/chatbot', apiLimiter, chatbotRoutes);
 app.use('/api/consultations', apiLimiter, consultationRoutes);
 app.use('/api/mensajes', apiLimiter, mensajeRoutes);
-app.use('/api/presupuesto', apiLimiter, presupuestoRoutes);
+app.use('/api/presupuestos', apiLimiter, presupuestoRoutes);
 app.use(errorHandler);
 
 export default app;

@@ -74,6 +74,7 @@ export const updatePublicConsultationContact = async (req: Request, res: Respons
       req.params.id,
       req.body.clienteNombre,
       req.body.clienteTelefono,
+      req.body.motivo,
     );
     res.status(200).json({ success: true, consulta });
   } catch (error: unknown) {
@@ -125,7 +126,11 @@ export const getConsultasEmprendedor = async (req: Request, res: Response) => {
     
     const filtro = req.query.filtro as string;
 
-    const consultas = await consultationService.obtenerConsultasDerivadas(slug, filtro);
+    const consultas = await consultationService.obtenerConsultasDerivadas(
+      req.usuario!.id,
+      slug,
+      filtro,
+    );
     
     return res.status(200).json(consultas);
   } catch (error) {
