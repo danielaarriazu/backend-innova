@@ -1509,22 +1509,15 @@ paths:
       summary: Crear un producto o servicio
       description: |
         Agrega un producto o servicio al catálogo del bot.
-
-        Soporta dos modos:
-        - **JSON puro (`application/json`):** sin imagen, enviar `urlImagen` como string de URL si se desea.
-        - **Con imagen (`multipart/form-data`):** usar el campo `imagen` (JPG/PNG/WEBP, máx 5MB). La imagen se sube automáticamente a Cloudinary.
-
-        **Lógica de Precios (A convenir):**
-        - Si `requiereCotizacion` es `true`, el `precio` puede enviarse como `0` o vacío.
-        - Si `requiereCotizacion` es `false` (por defecto), es obligatorio enviar un `precio` mayor a `0`.
-
-        Registra la acción en `RegistroActividad`.
+        Soporta `multipart/form-data` para procesar la subida de la imagen vía Cloudinary (máx. 5MB) o enviar una URL directa.
+        
+        **Regla de Precios (Zod):**
+        Si `requiereCotizacion` es `false`, el campo `precio` es obligatorio y debe ser mayor a 0.
       security:
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          # OPCIÓN 1: SUBIDA CON ARCHIVO
           multipart/form-data:
             schema:
               type: object
@@ -1532,84 +1525,56 @@ paths:
               properties:
                 nombre:
                   type: string
+                  minLength: 1
+                  maxLength: 200
                   example: "Instalación Eléctrica"
                 descripcion:
                   type: string
-                requiereCotizacion:
-                  type: boolean
-                  description: "Si es true, el precio puede ser 0 (A convenir)."
-                  example: true
-                precio:
-                  type: number
-                  description: "Obligatorio y mayor a 0 si requiereCotizacion es false."
-                  example: 0
-                stock:
-                  type: integer
-                  example: 0
-                activo:
-                  type: boolean
-                imagen:
-                  type: string
-                  format: binary
-                  description: Imagen del producto (JPG, PNG, WEBP — máx 5MB)
-          # OPCIÓN 2: SOLO TEXTO / URL
-          application/json:
-            schema:
-              type: object
-              required: [nombre]
-              properties:
-                nombre:
-                  type: string
-                  maxLength: 200
-                  example: "Remera básica manga corta"
-                descripcion:
-                  type: string
                   maxLength: 2000
-                  example: "100% algodón peinado. Disponible en talles S a XL."
                 requiereCotizacion:
                   type: boolean
                   default: false
-                  example: false
+                  description: "Si es true, el producto es 'A convenir'."
                 precio:
                   type: number
-                  description: "Obligatorio y mayor a 0 si requiereCotizacion es false."
-                  example: 8500.00
+                  minimum: 0
+                  description: "Debe ser > 0 si requiereCotizacion es false."
                 stock:
                   type: integer
                   minimum: 0
                   default: 0
-                  example: 50
-                urlImagen:
-                  type: string
-                  format: uri
-                  example: "https://ejemplo.com/remera.jpg"
                 activo:
                   type: boolean
                   default: true
-                  example: true
+                imagen:
+                  type: string
+                  format: binary
+                  description: Imagen del producto (JPG, PNG, WEBP — máx 5MB).
+                urlImagen:
+                  type: string
+                  format: uri
+                  description: "URL directa (alternativa a subir archivo binario)."
       responses:
         '201':
-          description: Producto creado
+          description: Producto creado con éxito.
+        '400':
+          description: Validación fallida de Zod (ej. precio requerido y no enviado, o imagen demasiado pesada para multer).
           content:
             application/json:
               example:
-                success: true
-                message: "Producto creado con éxito."
-                producto:
-                  id: "e5f6a7b8-c9d0-1234-abcd-567890123456"
-                  nombre: "Remera básica manga corta"
-                  requiereCotizacion: false
-                  precio: "8500.00"
-                  stock: 50
-                  activo: true
+                success: false
+                error: "Si el producto no es 'A convenir', debes ingresar un precio mayor a 0"
+        '401':
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
 
     get:
       tags: [Productos]
       summary: Listar productos con filtros y paginación
       description: |
         Devuelve el catálogo de productos del bot del usuario autenticado.
-
-        Soporta búsqueda por nombre y filtrado por estado.
+        Incluye defaults de paginación estrictos (page=1, limit=10, máximo limit=100).
       security:
         - bearerAuth: []
       parameters:
@@ -1619,7 +1584,6 @@ paths:
             type: integer
             minimum: 1
             default: 1
-          example: 1
         - in: query
           name: limit
           schema:
@@ -1627,48 +1591,19 @@ paths:
             minimum: 1
             maximum: 100
             default: 10
-          example: 10
         - in: query
           name: buscar
           schema:
             type: string
-          description: Buscar por nombre de producto (case-insensitive)
-          example: "remera"
+            description: Buscar por coincidencia parcial en nombre (case-insensitive).
         - in: query
           name: activo
           schema:
             type: string
             enum: ["true", "false"]
-          description: Filtrar por estado del producto
-          example: "true"
       responses:
         '200':
-          description: Catálogo paginado de productos
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  productos:
-                    $ref: '#/components/schemas/PaginatedProductos'
-              example:
-                success: true
-                productos:
-                  productos:
-                    - id: "e5f6a7b8-c9d0-1234-abcd-567890123456"
-                      nombre: "Remera básica manga corta"
-                      descripcion: "100% algodón. Talles S a XL."
-                      requiereCotizacion: false
-                      precio: "8500.00"
-                      stock: 50
-                      urlImagen: null
-                      activo: true
-                  total: 8
-                  page: 1
-                  limit: 10
-                  totalPaginas: 1
+          description: Catálogo paginado obtenido exitosamente.
         '400':
           description: Error en parámetros de query (ej. limit mayor a 100).
         '401':
@@ -1680,9 +1615,7 @@ paths:
     get:
       tags: [Productos]
       summary: Obtener un producto por ID
-      description: |
-        Devuelve un producto del catÃ¡logo del usuario autenticado.
-        No permite acceder a productos asociados a otro negocio.
+      description: Devuelve un producto específico mediante su ID (UUID válido).
       security:
         - bearerAuth: []
       parameters:
@@ -1692,35 +1625,28 @@ paths:
           schema:
             type: string
             format: uuid
-          description: ID del producto
-          example: "e5f6a7b8-c9d0-1234-abcd-567890123456"
       responses:
         '200':
-          description: Producto encontrado
+          description: Producto encontrado exitosamente.
+        '400':
+          description: El ID no tiene formato UUID.
+        '401':
+          description: No autenticado.
+        '404':
+          description: Producto no existe o no pertenece al catálogo del usuario.
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  producto:
-                    $ref: '#/components/schemas/Producto'
-        '400':
-          description: ID invÃ¡lido
-        '401':
-          description: No autenticado
-        '404':
-          description: Producto no encontrado o perteneciente a otro negocio
+              example:
+                success: false
+                error: "El producto no existe o no pertenece a tu catálogo."
 
     put:
       tags: [Productos]
       summary: Actualizar un producto
       description: |
-        Actualiza uno o más campos de un producto.
-
-        Todos los campos son opcionales. Se debe enviar al menos uno.
-        Soporta tanto `application/json` como `multipart/form-data` si deseás actualizar la foto.
+        Actualiza los campos de un producto. Soporta `multipart/form-data` para reemplazar la imagen.
+        Al menos un campo debe enviarse para evitar un error 400.
+        **Regla de Negocio:** Lanza 400 `FIXED_PRICE_REQUIRED` si se quita `requiereCotizacion` y el precio guardado queda en 0.
       security:
         - bearerAuth: []
       parameters:
@@ -1733,63 +1659,51 @@ paths:
       requestBody:
         required: true
         content:
-          # OPCIÓN 1: ACTUALIZAR CON NUEVA IMAGEN
           multipart/form-data:
             schema:
               type: object
               properties:
-                nombre: { type: string }
-                descripcion: { type: string }
-                requiereCotizacion: { type: boolean }
-                precio: { type: number }
-                stock: { type: integer }
-                activo: { type: boolean }
+                nombre: 
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                descripcion: 
+                  type: string
+                  maxLength: 2000
+                requiereCotizacion: 
+                  type: boolean
+                precio: 
+                  type: number
+                  minimum: 0
+                  description: "No puede tener más de 2 decimales."
+                stock: 
+                  type: integer
+                  minimum: 0
+                activo: 
+                  type: boolean
                 imagen:
                   type: string
                   format: binary
-                  description: Nueva imagen (reemplaza la anterior)
-          # OPCIÓN 2: ACTUALIZAR SOLO DATOS DE TEXTO
-          application/json:
-            schema:
-              type: object
-              properties:
-                nombre: { type: string, maxLength: 200 }
-                descripcion: { type: string, maxLength: 2000, nullable: true }
-                requiereCotizacion: { type: boolean }
-                precio: { type: number }
-                stock: { type: integer, minimum: 0 }
-                urlImagen: { type: string, format: uri, nullable: true }
-                activo: { type: boolean }
+                  description: "Nueva imagen (JPG/PNG/WEBP máx 5MB)."
       responses:
         '200':
-          description: Producto actualizado
+          description: Producto actualizado con éxito.
+        '400':
+          description: Body vacío, error de validación Zod, o infracción de precio fijo.
           content:
             application/json:
               example:
-                success: true
-                producto:
-                  id: "e5f6a7b8-c9d0-1234-abcd-567890123456"
-                  nombre: "Remera básica manga corta"
-                  requiereCotizacion: false
-                  precio: "9200.00"
-                  stock: 25
-                  activo: true
-        '400':
-          description: Validación fallida o body vacío
+                success: false
+                error: "Los productos con precio fijo deben tener un precio mayor a 0."
         '401':
-          description: No autenticado
+          description: No autenticado.
         '404':
-          description: Producto no encontrado
+          description: Configuración de bot o producto no encontrado.
 
     delete:
       tags: [Productos]
       summary: Eliminar un producto
-      description: |
-        Elimina permanentemente un producto del catálogo. **Hard delete — no se puede recuperar.**
-
-        La imagen en Cloudinary no se elimina automáticamente (mejora pendiente).
-
-        Registra la acción en `RegistroActividad`.
+      description: Elimina permanentemente un producto de la base de datos (Hard Delete).
       security:
         - bearerAuth: []
       parameters:
@@ -1799,21 +1713,15 @@ paths:
           schema:
             type: string
             format: uuid
-          description: ID del producto a eliminar
-          example: "e5f6a7b8-c9d0-1234-abcd-567890123456"
       responses:
         '200':
-          description: Producto eliminado
-          content:
-            application/json:
-              example:
-                success: true
-                message: "Producto eliminado con éxito."
+          description: Producto eliminado con éxito.
+        '400':
+          description: El ID no tiene formato UUID.
         '401':
-          description: No autenticado
+          description: No autenticado.
         '404':
-          description: Producto no encontrado o ya eliminado
- 
+          description: Configuración de bot o producto no encontrado.
   # ==========================================================================
   # TELEMETRÍA
   # ==========================================================================
