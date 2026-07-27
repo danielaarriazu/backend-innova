@@ -295,6 +295,10 @@ tags:
     description: Registro de eventos de comportamiento del usuario
   - name: Público 
     description: Endpoints abiertos para el widget del chat  
+  - name: Consultas
+    description: Gestión de leads, cotizaciones y atención al cliente por parte del emprendedor
+  - name: Mensajería
+    description: Historial de chat y control de sesión
 
 paths:
    # ==========================================================================
@@ -2062,6 +2066,138 @@ paths:
         '429':
           description: Demasiadas solicitudes a la API (apiLimiter - Max 200 req/min).
 
+    /api/public/chatbot/{slug}/consultations:
+    post:
+      tags: [API Pública]
+      summary: Crear una nueva consulta/lead desde el bot
+      description: |
+        Registra una nueva conversación iniciada por el visitante en el widget del chat.
+        Mapea el `sessionId` del cliente y permite asignar un asunto inicial.
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                  maxLength: 200
+                sessionAnonimaId:
+                  type: string
+                  maxLength: 200
+                  description: Fallback si sessionId no está definido.
+                tipoConsulta:
+                  type: string
+                  maxLength: 100
+                canal:
+                  type: string
+                  enum: [web, whatsapp]
+                  default: web
+                asunto:
+                  type: string
+                  maxLength: 250
+                descripcion:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '201':
+          description: Consulta creada con éxito.
+        '404':
+          description: Bot no encontrado o inactivo.
+
+  /api/public/chatbot/{slug}/consultations/{id}/messages:
+    post:
+      tags: [API Pública]
+      summary: Agregar mensaje del visitante a la consulta
+      description: Guarda en la base de datos un mensaje enviado por el usuario o por el bot dentro de una consulta activa.
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emisor, contenido, tipoMensaje]
+              properties:
+                emisor:
+                  type: string
+                  enum: [CLIENTE, EMPRENDEDOR, BOT]
+                contenido:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tipoMensaje:
+                  type: string
+                  enum: [TEXTO, ACCION, PRESUPUESTO]
+      responses:
+        '201':
+          description: Mensaje agregado exitosamente.
+        '400':
+          description: Error de validación en el contenido.
+        '404':
+          description: Consulta no encontrada.
+
+  /api/public/chatbot/{slug}/consultations/{id}/contact:
+    patch:
+      tags: [API Pública]
+      summary: Capturar datos de contacto (Convertir a Lead)
+      description: |
+        Actualiza la consulta con los datos de contacto del visitante y la marca como `derivada: true`.
+        **Validación Zod estricta:** Requiere nombre válido y teléfono numérico (8-15 dígitos).
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clienteNombre, clienteTelefono]
+              properties:
+                clienteNombre:
+                  type: string
+                  minLength: 1
+                  maxLength: 150
+                  description: "Regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]{2,50}$/"
+                clienteTelefono:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  description: "Regex: /^\\+?[0-9]{8,15}$/"
+      responses:
+        '200':
+          description: Contacto actualizado exitosamente.
+        '400':
+          description: El nombre o teléfono tienen un formato inválido.
+
   # ==========================================================================
   # MOTOR DEL CHATBOT
   # ==========================================================================
@@ -2219,3 +2355,201 @@ paths:
           description: No autenticado.
         '404':
           description: Bot no encontrado.
+
+  # ==========================================================================
+  # MENSAJERÍA
+  # ==========================================================================
+  /api/mensajes/{slug}/{sessionId}:
+    get:
+      tags: [Mensajería]
+      summary: Obtener historial de chat de una sesión
+      description: |
+        Devuelve la lista completa de mensajes intercambiados en una sesión específica, ordenados cronológicamente.
+        También devuelve el estado actual del control del chat (`estadoChat`: BOT_ACTIVO | HUMANO_ATENDIENDO).
+        **Seguridad:** Permite token opcional (`verificarTokenOpcional`).
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Historial de mensajes obtenido exitosamente.
+          content:
+            application/json:
+              example:
+                estadoChat: "BOT_ACTIVO"
+                mensajes: 
+                  - id: "uuid-mensaje"
+                    emisor: "BOT"
+                    contenido: "¡Hola! ¿En qué te ayudo?"
+        '400':
+          description: Falta el slug o sessionId.
+        '500':
+          description: Error interno al obtener los mensajes.
+
+  # ==========================================================================
+  # CONSULTAS Y LEADS (EMPRENDEDOR)
+  # ==========================================================================
+  /api/consultations:
+    get:
+      tags: [Consultas]
+      summary: Listar todas las consultas
+      description: Obtiene el listado completo de consultas y leads correspondientes al bot del emprendedor autenticado, ordenadas de más a menos reciente.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de consultas obtenida.
+        '401':
+          description: No autenticado.
+
+  /api/consultations/{id}:
+    get:
+      tags: [Consultas]
+      summary: Obtener detalle de una consulta
+      description: Devuelve toda la información de una consulta específica, incluyendo todos sus mensajes anidados.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalle de la consulta obtenido.
+        '404':
+          description: Consulta no encontrada.
+
+  /api/consultations/{id}/estado:
+    patch:
+      tags: [Consultas]
+      summary: Actualizar el estado de la consulta
+      description: |
+        Cambia el estado de atención de la consulta (nueva, en_proceso, resuelta, cerrada).
+        **Regla del Sistema:** Si el estado cambia a `RESUELTA` o `CERRADA`, el servidor automáticamente le devuelve el control del chat al bot (`BOT_ACTIVO`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: string
+                  enum: [nueva, en_proceso, resuelta, cerrada]
+      responses:
+        '200':
+          description: Estado actualizado con éxito.
+        '404':
+          description: Consulta no encontrada.
+
+  /api/consultations/{id}/mensajes:
+    post:
+      tags: [Consultas]
+      summary: Enviar un mensaje manual (Emprendedor)
+      description: Permite al dueño del negocio responder manualmente a un visitante dentro del hilo de una consulta.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contenido]
+              properties:
+                contenido:
+                  type: string
+                  description: "Texto de la respuesta (mínimo 1 caracter)."
+      responses:
+        '201':
+          description: Mensaje del emprendedor guardado y enviado.
+        '400':
+          description: El contenido está vacío o no es texto.
+        '404':
+          description: Consulta no encontrada.
+
+  /api/consultations/{id}/control-chat:
+    patch:
+      tags: [Consultas]
+      summary: Tomar o liberar control del chat
+      description: Modifica directamente la tabla `SesionChat` para definir si la sesión la está gestionando el `BOT_ACTIVO` o si hay un `HUMANO_ATENDIENDO`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: string
+                  enum: [BOT_ACTIVO, HUMANO_ATENDIENDO]
+      responses:
+        '200':
+          description: Control de chat actualizado.
+        '404':
+          description: Consulta no tiene un sessionId asociado.
+
+  /api/consultations/{slug}/derivadas:
+    get:
+      tags: [Consultas]
+      summary: Listar consultas derivadas (Bandeja de entrada)
+      description: |
+        Endpoint especial para la bandeja de entrada del emprendedor. Trae las consultas marcadas como `derivada: true` y permite filtrarlas por tipo.
+        Incluye el estado actual de la sesión del chat para saber si el bot está silenciado o no.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: filtro
+          schema:
+            type: string
+            enum: [atencion_personalizada, cotizaciones]
+          description: Permite filtrar entre leads puros de atención y leads con carritos a cotizar.
+      responses:
+        '200':
+          description: Listado de consultas derivadas obtenido con éxito.
+        '500':
+          description: Error interno al obtener las consultas.
