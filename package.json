@@ -37,13 +37,13 @@
     "pdfkit": "^0.19.1",
     "swagger-ui-express": "^5.0.1",
     "typescript": "^5.9.3",
-    "uuid": "^14.0.1",
+    "uuid": "^9.0.1",
     "yamljs": "^0.3.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "@types/uuid": "^10.0.0",
+    "@types/uuid": "^9.0.8",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4"

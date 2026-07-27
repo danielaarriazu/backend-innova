@@ -1,9 +1,6 @@
 import prisma from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
-const resolverNombreNegocio = (mensaje: string | null, nombre: string) =>
-  mensaje?.replaceAll('{nombreNegocio}', nombre);
-
 export const obtenerProductosPublicos = async (slug: string) => {
   const bot = await prisma.configuracionBot.findUnique({
     where: { slug },
@@ -61,7 +58,6 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
 
   let hasHistory = false;
   let finalSessionId = sessionId;
-  let consultationId: string | null = null;
   
   if (finalSessionId) {
     // Buscamos si este cliente ya tenía una conversación previa
@@ -69,27 +65,20 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
       where: {
         sessionId: finalSessionId,
         botId: bot.id 
-      },
-      orderBy: { fechaActualizacion: 'desc' },
-      select: { id: true },
+      }
     });
 
     if (consultaPrevia) {
-      hasHistory = true;
-      consultationId = consultaPrevia.id;
-    } else {
-      // Si tiene session pero no se encuentra en la BD, se inicia una nueva.
-      finalSessionId = uuidv4();
+      hasHistory = true; 
+      finalSessionId = uuidv4(); 
     }
   } else {
     // Es la primera vez que entra al chat
     finalSessionId = uuidv4();
   }
-
   return {
     sessionId: finalSessionId,
     hasHistory,
-    consultationId,
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',
@@ -97,10 +86,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
       horario: bot.horarioAtencion,
       telefono: bot.telefono,
       logo: bot.logoUrl,
-      mensajeBienvenida: resolverNombreNegocio(
-        bot.mensajeBienvenida,
-        bot.nombreNegocio || 'tu negocio',
-      ),
+      mensajeBienvenida: bot.mensajeBienvenida || '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
       respuestaDerivacion: bot.respuestaDerivacion,
       colorPrimario: bot.colorPrimario,
       colorSecundario: bot.colorSecundario,
@@ -111,11 +97,17 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
         id: producto.id,
         nombre: producto.nombre,
         descripcion: producto.descripcion,
-        precio: producto.precio,
+        precio: Number(producto.precio),
         precioConsultar: producto.requiereCotizacion,
         imagen: producto.urlImagen,
-        disponible: producto.activo,
+        disponible: producto.activo && producto.stock !== 0,
       })),
-    }
+    },
+    // Campos planos conservados para clientes que consumían el contrato anterior.
+    botId: bot.id,
+    nombre: bot.nombreNegocio || 'Asistente Virtual',
+    mensajeBienvenida: bot.mensajeBienvenida || '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
+    colorPrimario: bot.colorPrimario,
+    colorSecundario: bot.colorSecundario,
   };
 };

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as publicService from '../services/public.service';
+import { obtenerInitBot } from '../services/public.service';
 
 export const getProductosPublicos = async (
   req: Request,
@@ -24,8 +25,7 @@ export const getFAQsPublicas = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { slug } = req.params;
-    const faqs = await publicService.obtenerFAQsPublicas(slug);
+    const faqs = await publicService.obtenerFAQsPublicas(req.params.slug);
     
     res.status(200).json({ success: true, faqs });
   } catch (error: unknown) {
@@ -44,7 +44,7 @@ export const getChatInit = async (
   try {
     const { slug } = req.params;
     const { sessionId } = req.query;
-    const initData = await publicService.obtenerInitBot(slug, sessionId as string);
+    const initData = await obtenerInitBot(slug, sessionId as string);
     
     res.status(200).json({ success: true, data: initData });
   } catch (error: unknown) {

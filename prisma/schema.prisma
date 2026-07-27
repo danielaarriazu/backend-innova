@@ -105,7 +105,7 @@ model Faq {
   categoria   CategoriaFAQ @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
 
   pregunta            String
-  preguntaNormalizada String
+  preguntaNormalizada String?
   respuesta           String  @db.Text
   activa              Boolean @default(true)
 
