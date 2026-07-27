@@ -252,3 +252,51 @@ export const actualizarControlChat = async (params: { usuarioId: string; consult
 
   return sesionActualizada;
 };
+
+export const obtenerConsultasDerivadas = async (slug: string, tipoFiltro?: string) => {
+  const whereClause: any = {
+    bot: { slug: slug },
+    derivada: true,
+  };
+
+  if (tipoFiltro === 'atencion_personalizada') {
+    whereClause.tipoConsulta = 'DERIVAR_HUMANO';
+  } else if (tipoFiltro === 'cotizaciones') {
+    whereClause.tipoConsulta = 'COTIZACION';
+  }
+
+  const consultas = await prisma.consulta.findMany({
+    where: whereClause,
+    include: {
+      lead: true, 
+    },
+    orderBy: {
+      fechaActualizacion: 'desc' 
+    }
+  });
+
+  const consultasConSesion = await Promise.all(
+    consultas.map(async (consulta) => {
+      if (!consulta.sessionId) {
+        return { ...consulta, estadoChat: null };
+      }
+
+      const sesion = await prisma.sesionChat.findUnique({
+        where: {
+          botId_sessionId: {
+            botId: consulta.botId,
+            sessionId: consulta.sessionId
+          }
+        },
+        select: { estado: true }
+      });
+
+      return {
+        ...consulta,
+        estadoChat: sesion?.estado || null 
+      };
+    })
+  );
+
+  return consultasConSesion;
+};
