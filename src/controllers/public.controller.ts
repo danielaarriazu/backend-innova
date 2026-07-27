@@ -18,7 +18,7 @@ export const getProductosPublicos = async (
   }
 };
 
-export const getFaqsPublicas = async (
+export const getFAQsPublicas = async (
   req: Request,
   res: Response,
   next: NextFunction
