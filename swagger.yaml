@@ -1038,7 +1038,7 @@ paths:
                 nombre:
                   type: string
                   minLength: 1
-                  maxLength: 100
+                  maxLength: 200
                   example: "Envíos y logística"
             examples:
               nueva_categoria:
@@ -1049,7 +1049,7 @@ paths:
                   nombre: "Garantías y devoluciones"
       responses:
         '201':
-          description: Categoría creada
+          description: Categoría creada con éxito.
           content:
             application/json:
               schema:
@@ -1064,9 +1064,21 @@ paths:
                   categoria:
                     $ref: '#/components/schemas/CategoriaFAQ'
         '400':
-          description: Validación fallida
+          description: Error de validación Zod (el nombre está vacío o supera los 200 caracteres).
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Los datos enviados no son válidos"
         '401':
-          description: No autenticado
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Configuración de bot no encontrada."
  
     get:
       tags: [Categorías FAQ]
@@ -1093,6 +1105,8 @@ paths:
                     fechaCreacion: "2026-06-15T10:30:01.000Z"
         '401':
           description: No autenticado
+        '404':
+          description: Configuración de bot no encontrada.
  
   /api/faq-categories/{id}:
     put:
@@ -1182,10 +1196,12 @@ paths:
               example:
                 success: true
                 message: "Categoría eliminada con éxito."
+        '400':
+          description: El ID proporcionado no es un UUID válido.
         '401':
-          description: No autenticado
+          description: No autenticado.
         '404':
-          description: Categoría no encontrada
+          description: Bot no encontrado o la categoría no existe.
         '409':
           description: La categoría tiene FAQs asociadas y no puede eliminarse
           content:
@@ -1274,7 +1290,19 @@ paths:
         '401':
           description: No autenticado
         '404':
-          description: Categoría no encontrada o no pertenece al bot
+          description: Bot no encontrado o la categoría especificada no existe.
+          content:
+            application/json:
+              example:
+                success: false
+                error: "La categoría especificada no existe o no pertenece a tu bot."
+        '409':
+          description: La pregunta ya existe en la base de datos para este bot.
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Esta pregunta ya existe en tu configuración."
  
     get:
       tags: [FAQs]
@@ -1641,8 +1669,12 @@ paths:
                   page: 1
                   limit: 10
                   totalPaginas: 1
+        '400':
+          description: Error en parámetros de query (ej. limit mayor a 100).
         '401':
-          description: No autenticado
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
 
   /api/products/{id}:
     get:
@@ -2397,3 +2429,78 @@ paths:
                     contexto: "FINALIZADO"
         '400':
           description: "Faltan datos requeridos (botId o sessionId)"
+  /api/bot/slug:
+    patch:
+      tags: [Bot]
+      summary: Actualizar enlace público (Slug) del bot
+      description: |
+        Personaliza la URL pública del bot. 
+        **Importante:** Solo se puede modificar una vez. Si ya fue personalizado, devolverá un error 409 Conflict.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug]
+              properties:
+                slug:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: "Nuevo enlace público deseado"
+      responses:
+        '200':
+          description: Enlace público actualizado con éxito.
+        '400':
+          description: Error de validación Zod (slug vacío o mayor a 100 caracteres).
+        '401':
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
+        '409':
+          description: El enlace público ya fue personalizado y no puede volver a modificarse.
+          content:
+            application/json:
+              example:
+                success: false
+                code: "SLUG_EDIT_ALREADY_USED"
+                field: "slug"
+                error: "El enlace público ya fue personalizado y no puede volver a modificarse."
+
+  /api/bot/{slug}/status:
+    patch:
+      tags: [Bot]
+      summary: Activar o desactivar bot públicamente
+      description: Permite al emprendedor cambiar rápidamente el estado activo/inactivo de su bot utilizando el slug.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activo]
+              properties:
+                activo:
+                  type: boolean
+                  description: Estado deseado del bot.
+      responses:
+        '200':
+          description: Estado del bot actualizado exitosamente.
+        '400':
+          description: Error de validación (estado no es booleano o falta ID en params).
+        '401':
+          description: No autenticado.
+        '404':
+          description: Bot no encontrado.
