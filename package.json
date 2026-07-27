@@ -23,6 +23,8 @@
     "@types/swagger-ui-express": "^4.1.8",
     "@types/yamljs": "^0.2.34",
     "@upstash/redis": "^1.38.0",
+    "@types/node": "^26.1.1",
+    "@types/uuid": "^9.0.8",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "concurrently": "^10.0.3",
@@ -42,8 +44,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
-    "@types/uuid": "^9.0.8",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4"
