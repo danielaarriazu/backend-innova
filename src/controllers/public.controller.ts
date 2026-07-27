@@ -41,15 +41,24 @@ export const getChatInit = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  // 1. Extraemos 'slug' fuera del try/catch para que sea global a toda la función
+  const { slug } = req.params;
+
   try {
-    const { slug } = req.params;
     const { sessionId } = req.query;
     const initData = await publicService.obtenerInitBot(slug, sessionId as string);
     
+    // 2. Eliminé el res.json(initData) sobrante para evitar errores en Express
     res.status(200).json({ success: true, data: initData });
+    
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
-      res.status(404).json({ success: false, error: 'Negocio o bot no encontrado.' });
+      // Ahora 'slug' es perfectamente visible aquí
+      res.status(404).json({ 
+        success: false, 
+        error: 'Negocio o bot no encontrado.', 
+        detalleDebug: `El slug recibido fue: ${slug}` 
+      });
       return;
     }
     next(error);
