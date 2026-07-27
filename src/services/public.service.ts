@@ -42,9 +42,6 @@ export const obtenerFAQsPublicas = async (slug: string) => {
 };
 
 export const obtenerInitBot= async (slug: string, sessionId?: string) => {
-  console.log('--- INTENTO DE INGRESO ---');
-  console.log('Slug recibido desde la URL:', `"${slug}"`);
-
   const bot = await prisma.configuracionBot.findUnique({
     where: { slug },
     include: {
@@ -55,9 +52,6 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
       },
     },
   });
-
-  console.log('Resultado de Prisma:', bot ? `Encontrado (Activo: ${bot.activo})` : 'Null (No se encontró el registro)');
-  
   if (!bot || !bot.activo) {
     throw new Error('BOT_NOT_FOUND');
   }
