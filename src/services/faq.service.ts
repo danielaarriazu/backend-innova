@@ -127,7 +127,7 @@ export const actualizarFAQ = async (data: UpdateFaqInput) => {
   const preguntaNormalizada = data.pregunta
     ? normalizeFaqQuestion(pregunta)
     : faqExistente.preguntaNormalizada;
-  if (data.pregunta) await verificarPreguntaDuplicada(bot.id, preguntaNormalizada, data.faqId);
+  if (preguntaNormalizada) await verificarPreguntaDuplicada(bot.id, preguntaNormalizada, data.faqId);
 
   const faqActualizada = await prisma.faq.update({
     where: { id: data.faqId },
