@@ -79,9 +79,16 @@ export const gestionarInteraccion = async (payload: ChatbotPayload) => {
 
   // Si un humano está atendiendo, cortamos acá
   if (sesion.estado === EstadoChat.HUMANO_ATENDIENDO) {
+    const mensajeBloqueo = consulta.tipoConsulta === 'COTIZACION'
+      ? "En este momento el emprendedor está armando la cotización de tu presupuesto. Por favor aguarda, se contactará contigo a la brevedad."
+      : "En este momento el emprendedor está revisando tu consulta. Por favor aguarda unos instantes.";
+
     return { 
       silenciado: true, 
-      mensaje: "El mensaje fue recibido y será leído por el humano." 
+      respuesta: mensajeBloqueo,
+      botones: [],
+      requiereInput: false,
+      contexto: 'BLOQUEADO_POR_HUMANO'
     };
   }
 
@@ -327,11 +334,18 @@ export const procesarAccionBot = async (
             asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
             descripcion: descripcionConsulta,
             derivada: esDerivacion, 
-            estado: 'NUEVA'    
+            estado: esDerivacion ? EstadoConsulta.EN_PROCESO : EstadoConsulta.NUEVA    
           }
         });
+        if (esDerivacion) {
+          await tx.sesionChat.update({
+            where: { botId_sessionId: { botId: botId, sessionId: sessionId } },
+            data: { estado: EstadoChat.HUMANO_ATENDIENDO }
+          });
+        }
       });
-
+ 
+ 
         await enviarEventosQueue({
           botId, sessionId, tipoUsuario: 'CLIENTE',
           eventos: [{ tipo: `LEAD_CAPTURADO_${tipoConsultaFinal}`, fecha: new Date().toISOString() }]

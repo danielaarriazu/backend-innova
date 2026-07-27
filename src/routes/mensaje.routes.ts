@@ -7,6 +7,6 @@ import { getHistorialSchema } from '../schema/mensaje.schema';
 const router = Router();
 
 // GET /api/mensajes/:slug/:sessionId
-router.get('/:slug/:sessionId', verificarTokenOpcional, validate(getHistorialSchema), getHistorial);
+router.get('/:slug/:sessionId', verificarTokenOpcional, validate(getHistorialSchema, 'all'), getHistorial);
 
 export default router;
