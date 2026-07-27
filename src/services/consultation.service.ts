@@ -186,13 +186,48 @@ export const actualizarContactoPublico = async (
   });
   if (!consulta) throw new Error('CONSULTATION_NOT_FOUND');
 
-  const actualizada = await prisma.consulta.update({
-    where: { id: consultaId },
-    data: {
-      derivada: true,
-      estado: EstadoConsulta.EN_PROCESO,
-    },
-    include: consultationInclude,
+  const mensajeContacto = await prisma.mensaje.findFirst({
+    where: { consultaId, emisor: RolEmisor.CLIENTE },
+    orderBy: { fechaCreacion: 'desc' },
+    select: { id: true },
+  });
+
+  const actualizada = await prisma.$transaction(async (tx) => {
+    const mensaje = mensajeContacto ?? await tx.mensaje.create({
+      data: {
+        consultaId,
+        emisor: RolEmisor.CLIENTE,
+        tipoMensaje: TipoMensaje.ACCION,
+        contenido: clienteTelefono,
+      },
+      select: { id: true },
+    });
+
+    await tx.lead.upsert({
+      where: { consultaId },
+      update: {
+        nombre: clienteNombre,
+        telefono: clienteTelefono,
+        mensajeId: mensaje.id,
+      },
+      create: {
+        nombre: clienteNombre,
+        telefono: clienteTelefono,
+        consultaId,
+        mensajeId: mensaje.id,
+      },
+    });
+
+    return tx.consulta.update({
+      where: { id: consultaId },
+      data: {
+        derivada: true,
+        estado: EstadoConsulta.EN_PROCESO,
+        tipoConsulta: 'DERIVAR_HUMANO',
+        asunto: 'Derivación de Chatbot',
+      },
+      include: consultationInclude,
+    });
   });
   return toConsultationDto(actualizada);
 };
@@ -253,9 +288,13 @@ export const actualizarControlChat = async (params: { usuarioId: string; consult
   return sesionActualizada;
 };
 
-export const obtenerConsultasDerivadas = async (slug: string, tipoFiltro?: string) => {
+export const obtenerConsultasDerivadas = async (
+  usuarioId: string,
+  slug: string,
+  tipoFiltro?: string,
+) => {
   const whereClause: any = {
-    bot: { slug: slug },
+    bot: { slug, usuarioId },
     derivada: true,
   };
 

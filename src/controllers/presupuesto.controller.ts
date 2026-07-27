@@ -3,6 +3,7 @@ import {
   cambiarEstadoPresupuesto,
   cotizarYActualizarPresupuesto,
   crearPresupuesto,
+  crearPresupuestoPublico,
   listarPresupuestos,
   obtenerPresupuesto,
   PresupuestoError,
@@ -11,6 +12,7 @@ import {
   CambiarEstadoBody,
   CotizarPresupuestoBody,
   CrearPresupuestoBody,
+  CrearPresupuestoPublicoBody,
   ListarPresupuestosQuery,
 } from '../schema/presupuesto.schema';
 
@@ -28,6 +30,33 @@ const responderErrorConocido = (error: unknown, res: Response): boolean => {
   const [status, mensaje] = respuestas[error.code];
   res.status(status).json({ success: false, error: mensaje, code: error.code });
   return true;
+};
+
+export const createPublicBudget = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const body = req.body as CrearPresupuestoPublicoBody;
+    const resultado = await crearPresupuestoPublico({
+      slug: req.params.slug,
+      consultaId: req.params.id,
+      items: body.items.map((item) => ({
+        ...item,
+        precioUnitario: item.precioUnitario ?? 0,
+      })),
+      diasValidez: body.diasValidez,
+      idempotencyKey: body.idempotencyKey,
+    });
+    res.status(resultado.creado ? 201 : 200).json({
+      success: true,
+      duplicated: !resultado.creado,
+      presupuesto: resultado.presupuesto,
+    });
+  } catch (error) {
+    if (!responderErrorConocido(error, res)) next(error);
+  }
 };
 
 export const createBudget = async (

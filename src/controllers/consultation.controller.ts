@@ -125,7 +125,11 @@ export const getConsultasEmprendedor = async (req: Request, res: Response) => {
     
     const filtro = req.query.filtro as string;
 
-    const consultas = await consultationService.obtenerConsultasDerivadas(slug, filtro);
+    const consultas = await consultationService.obtenerConsultasDerivadas(
+      req.usuario!.id,
+      slug,
+      filtro,
+    );
     
     return res.status(200).json(consultas);
   } catch (error) {

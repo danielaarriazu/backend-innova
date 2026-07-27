@@ -13,11 +13,23 @@ export interface PresupuestoItem extends PresupuestoItemInput {
 
 export interface CrearPresupuestoInput {
   usuarioId?: string;
+  slugPublico?: string;
   consultaId: string;
   items: PresupuestoItemInput[];
   diasValidez?: number;
   idempotencyKey?: string;
   estadoInicial?: estadoPresupuesto;
+}
+
+export interface CrearPresupuestoPublicoInput {
+  slug: string;
+  consultaId: string;
+  items: Array<Omit<PresupuestoItemInput, 'precioUnitario'> & {
+    precioUnitario?: number;
+    requiereCotizacion: boolean;
+  }>;
+  diasValidez?: number;
+  idempotencyKey: string;
 }
 
 export interface ListarPresupuestosInput {

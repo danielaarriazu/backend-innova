@@ -9,6 +9,7 @@ import {
   CambiarEstadoInput,
   CotizarPresupuestoInput,
   CrearPresupuestoInput,
+  CrearPresupuestoPublicoInput,
   ListarPresupuestosInput,
   PresupuestoItem,
   PresupuestoItemInput,
@@ -127,11 +128,12 @@ async function validarProductosDelNegocio(
   }
 }
 
-async function obtenerConsultaPropia(consultaId: string, usuarioId?: string) {
+async function obtenerConsultaPropia(consultaId: string, usuarioId?: string, slugPublico?: string) {
   const consulta = await prisma.consulta.findFirst({
     where: {
       id: consultaId,
       ...(usuarioId ? { bot: { usuarioId } } : {}),
+      ...(slugPublico ? { bot: { slug: slugPublico, activo: true } } : {}),
     },
     select: { id: true, botId: true },
   });
@@ -140,7 +142,11 @@ async function obtenerConsultaPropia(consultaId: string, usuarioId?: string) {
   return consulta;
 }
 
-async function buscarPorClaveIdempotencia(clave: string, usuarioId?: string) {
+async function buscarPorClaveIdempotencia(
+  clave: string,
+  usuarioId?: string,
+  slugPublico?: string,
+) {
   const presupuesto = await prisma.presupuesto.findUnique({
     where: { idempotencyKey: clave },
     include: detalleInclude,
@@ -153,11 +159,20 @@ async function buscarPorClaveIdempotencia(clave: string, usuarioId?: string) {
     });
     if (!propio) throw new PresupuestoError('IDEMPOTENCY_CONFLICT');
   }
+  if (slugPublico) {
+    const propio = await prisma.presupuesto.count({
+      where: {
+        id: presupuesto.id,
+        consulta: { bot: { slug: slugPublico, activo: true } },
+      },
+    });
+    if (!propio) throw new PresupuestoError('IDEMPOTENCY_CONFLICT');
+  }
   return presupuesto;
 }
 
 export async function crearPresupuesto(input: CrearPresupuestoInput) {
-  const consulta = await obtenerConsultaPropia(input.consultaId, input.usuarioId);
+  const consulta = await obtenerConsultaPropia(input.consultaId, input.usuarioId, input.slugPublico);
   await validarProductosDelNegocio(consulta.botId, input.items);
 
   const clave = input.idempotencyKey
@@ -165,7 +180,11 @@ export async function crearPresupuesto(input: CrearPresupuestoInput) {
     : undefined;
 
   if (clave) {
-    const existente = await buscarPorClaveIdempotencia(clave, input.usuarioId);
+    const existente = await buscarPorClaveIdempotencia(
+      clave,
+      input.usuarioId,
+      input.slugPublico,
+    );
     if (existente) return { presupuesto: serializarPresupuesto(existente), creado: false };
   }
 
@@ -192,11 +211,45 @@ export async function crearPresupuesto(input: CrearPresupuestoInput) {
     return { presupuesto: serializarPresupuesto(presupuesto), creado: true };
   } catch (error) {
     if (clave && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      const existente = await buscarPorClaveIdempotencia(clave, input.usuarioId);
+      const existente = await buscarPorClaveIdempotencia(
+        clave,
+        input.usuarioId,
+        input.slugPublico,
+      );
       if (existente) return { presupuesto: serializarPresupuesto(existente), creado: false };
     }
     throw error;
   }
+}
+
+export async function crearPresupuestoPublico(input: CrearPresupuestoPublicoInput) {
+  const requiereCotizacion = input.items.some((item) => item.requiereCotizacion);
+  const resultado = await crearPresupuesto({
+    slugPublico: input.slug,
+    consultaId: input.consultaId,
+    items: input.items.map(({ requiereCotizacion: _, ...item }) => ({
+      ...item,
+      precioUnitario: item.precioUnitario ?? 0,
+    })),
+    diasValidez: input.diasValidez,
+    idempotencyKey: input.idempotencyKey,
+    estadoInicial: requiereCotizacion ? 'PENDIENTE' : 'ENVIADO',
+  });
+
+  if (requiereCotizacion || resultado.presupuesto.linkPdf) return resultado;
+
+  const rutaPdf = await generarPdfDesdeBaseDeDatos(resultado.presupuesto.id);
+  const linkPdf = await subirPdf(rutaPdf);
+  const presupuesto = await prisma.presupuesto.update({
+    where: { id: resultado.presupuesto.id },
+    data: { linkPdf },
+    include: detalleInclude,
+  });
+
+  return {
+    presupuesto: serializarPresupuesto(presupuesto),
+    creado: resultado.creado,
+  };
 }
 
 export async function listarPresupuestos(usuarioId: string, filtros: ListarPresupuestosInput) {

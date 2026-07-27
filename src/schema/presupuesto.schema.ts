@@ -20,6 +20,28 @@ export const crearPresupuestoSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(200),
 }).strict();
 
+const itemPresupuestoPublicoSchema = z.object({
+  productoId: uuid('El productoId debe ser un UUID válido'),
+  nombre: z.string().trim().min(1, 'El nombre es obligatorio').max(200),
+  cantidad: z.number().int().positive('La cantidad debe ser mayor que cero'),
+  precioUnitario: z.number().nonnegative('El precio unitario no puede ser negativo').optional(),
+  requiereCotizacion: z.boolean(),
+}).strict().superRefine((item, ctx) => {
+  if (!item.requiereCotizacion && item.precioUnitario === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'El precio unitario es obligatorio para productos que no requieren cotización',
+      path: ['precioUnitario'],
+    });
+  }
+});
+
+export const crearPresupuestoPublicoSchema = z.object({
+  items: z.array(itemPresupuestoPublicoSchema).min(1, 'Debe incluir al menos un ítem'),
+  diasValidez: z.number().int().min(1).max(365).default(7),
+  idempotencyKey: z.string().trim().min(8).max(200),
+}).strict();
+
 export const listarPresupuestosSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
@@ -42,6 +64,7 @@ export const cotizarPresupuestoSchema = z.object({
 }).strict();
 
 export type CrearPresupuestoBody = z.infer<typeof crearPresupuestoSchema>;
+export type CrearPresupuestoPublicoBody = z.infer<typeof crearPresupuestoPublicoSchema>;
 export type ListarPresupuestosQuery = z.infer<typeof listarPresupuestosSchema>;
 export type CambiarEstadoBody = z.infer<typeof cambiarEstadoSchema>;
 export type CotizarPresupuestoBody = z.infer<typeof cotizarPresupuestoSchema>;
