@@ -115,3 +115,28 @@ export const obtenerRubros = async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 };
+
+export const toggleBotStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { slug } = req.params;
+    const { activo } = req.body;
+
+    const botActualizado = await botService.cambiarEstadoBot(slug, activo);
+
+    res.status(200).json({
+      success: true,
+      mensaje: botActualizado.activo ? 'Bot activado exitosamente' : 'Bot desactivado exitosamente',
+      activo: botActualizado.activo,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
+      res.status(404).json({ success: false, error: 'Bot no encontrado.' });
+      return;
+    }
+    next(error);
+  }
+};
