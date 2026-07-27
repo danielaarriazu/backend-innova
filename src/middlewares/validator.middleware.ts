@@ -1,12 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
 
-type ValidationTarget = 'body' | 'params' | 'query';
+type ValidationTarget = 'body' | 'params' | 'query' | 'all';
 
 export const validate =
   (schema: z.ZodTypeAny, target: ValidationTarget = 'body') =>
   (req: Request, res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req[target]);
+    const dataToValidate = target === 'all' 
+      ? { body: req.body, query: req.query, params: req.params }
+      : req[target];
+
+    const result = schema.safeParse(dataToValidate);
 
     if (!result.success) {
       const errores = formatZodErrors(result.error);

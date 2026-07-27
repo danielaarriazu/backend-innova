@@ -84,4 +84,16 @@ export const updateSlugSchema = z.object({
     .max(100, { error: 'El enlace público no puede superar los 100 caracteres' }),
 });
 
+export const toggleBotStatusSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'El ID del bot es requerido'),
+  }),
+  body: z.object({
+    activo: z.boolean({
+      error: 'El estado debe ser verdadero o falso',
+    }),
+  }),
+});
+
 export type UpdateBotInput = z.infer<typeof updateBotSchema>;
+export type toggleBotStatusSchema = z.infer<typeof updateBotSchema>;

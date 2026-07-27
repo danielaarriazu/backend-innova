@@ -5,10 +5,10 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
   try {
     const { passwordActual, nuevaPassword } = req.body;
     
-    const usuarioId = (req as any).usuario?.id; 
+    const usuarioId = req.usuario!.id; 
 
-    const ip = req.ip || req.socket.remoteAddress;
-    const dispositivo = req.headers['user-agent'];
+    const ip = req.ip || req.socket.remoteAddress || 'IP Desconocida';
+    const dispositivo = req.headers['user-agent'] || 'Dispositivo Desconocido';
 
     await userService.cambiarPassword({
       usuarioId,
@@ -38,8 +38,8 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
   try {
     const usuarioId = req.usuario!.id;
     const { password } = req.body; 
-    const ip = req.ip ?? req.socket.remoteAddress;
-    const dispositivo = req.headers['user-agent'];
+    const ip = req.ip || req.socket.remoteAddress || 'IP Desconocida';
+    const dispositivo = req.headers['user-agent'] || 'Dispositivo Desconocido';
  
     await userService.eliminarCuenta({ usuarioId, password, ip, dispositivo });
     

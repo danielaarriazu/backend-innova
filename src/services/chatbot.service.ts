@@ -1,7 +1,114 @@
 import prisma from '../lib/prisma';
 import { enviarEventosQueue } from './telemetry.service'; 
-import { TipoMensaje, RolEmisor } from '@prisma/client';
+import { TipoMensaje, RolEmisor, EstadoChat, EstadoConsulta } from '@prisma/client';
 import { crearYEnviarPresupuesto } from './presupuesto.service';
+import { ChatbotPayload, DatosCliente } from '../types/chatbot.type';
+
+const ACCIONES_QUE_INICIAN_PROCESO = [ 
+  'MOSTRAR_CATALOGO',
+  'MOSTRAR_FAQS',
+  'MOSTRAR_HORARIOS',
+  'DERIVAR_HUMANO',
+  'SOLICITAR_PRESUPUESTO', 
+];
+
+const esNombreValido = (texto: string) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/.test(texto.trim());
+const esTelefonoValido = (texto: string) => /^\+?[0-9\s-]{8,15}$/.test(texto.trim());
+
+export const gestionarInteraccion = async (payload: ChatbotPayload) => {
+  const { accion, sessionId, botId, datosCliente, contexto } = payload;
+
+  let consulta = await prisma.consulta.findFirst({
+    where: { sessionId: sessionId, botId: botId }
+  });
+
+  let sesion = await prisma.sesionChat.findUnique({
+    where: {
+      botId_sessionId: { botId: botId, sessionId: sessionId }
+    }
+  });
+
+  if (!sesion) {
+    sesion = await prisma.sesionChat.create({
+      data: { botId, sessionId, estado: EstadoChat.BOT_ACTIVO }
+    });
+  }
+
+  if (!consulta) {
+    try {
+      consulta = await prisma.consulta.create({
+          data: { sessionId, 
+          botId, 
+          tipoConsulta: 'BOT',
+          asunto: 'INTERACCION_BOT',
+          descripcion: 'El cliente inició el bot.'
+        
+        }
+      });
+    } catch (prismaError: any) {
+      throw new Error(`Error al crear la consulta en Prisma: ${prismaError.message}`);
+    }
+  }
+
+  if (!consulta) {
+    throw new Error('Fallo crítico: No se pudo obtener ni crear la consulta en la BD');
+  }
+
+  if (consulta.estado === EstadoConsulta.NUEVA && ACCIONES_QUE_INICIAN_PROCESO.includes(accion)) {
+    consulta = await prisma.consulta.update({
+      where: { id: consulta.id },
+      data: { 
+        estado: EstadoConsulta.EN_PROCESO,
+        descripcion: 'El cliente está recorriendo las opciones'
+      
+      },
+    });
+  }
+
+  const esAccion = !datosCliente?.accion;
+  const contenidoCliente = esAccion ? accion : (datosCliente.texto || '');
+  
+  await prisma.mensaje.create({
+    data: {
+      consultaId: consulta.id,
+      emisor: RolEmisor.CLIENTE,
+      tipoMensaje: esAccion ? TipoMensaje.ACCION : TipoMensaje.TEXTO,
+      contenido: contenidoCliente
+    }
+  });
+
+  // Si un humano está atendiendo, cortamos acá
+  if (sesion.estado === EstadoChat.HUMANO_ATENDIENDO) {
+    const mensajeBloqueo = consulta.tipoConsulta === 'COTIZACION'
+      ? "En este momento el emprendedor está armando la cotización de tu presupuesto. Por favor aguarda, se contactará contigo a la brevedad."
+      : "En este momento el emprendedor está revisando tu consulta. Por favor aguarda unos instantes.";
+
+    return { 
+      silenciado: true, 
+      respuesta: mensajeBloqueo,
+      botones: [],
+      requiereInput: false,
+      contexto: 'BLOQUEADO_POR_HUMANO'
+    };
+  }
+
+  // Ejecutamos tu lógica original del bot
+  const resultado = await procesarAccionBot(accion, sessionId, botId, datosCliente, contexto);
+
+  // Guardamos la respuesta del bot en la BD
+  if (resultado && typeof resultado.respuesta === 'string') {
+    await prisma.mensaje.create({
+      data: {
+        consultaId: consulta.id,
+        emisor: RolEmisor.BOT,
+        tipoMensaje: TipoMensaje.TEXTO,
+        contenido: resultado.respuesta
+      }
+    });
+  }
+
+  return resultado;
+};
 
 export const procesarAccionBot = async (
   accion: string,
@@ -99,6 +206,16 @@ export const procesarAccionBot = async (
 
       if (contextoActual?.startsWith('ESPERANDO_NOMBRE_')) {
         const nombreIngresado = datosCliente.texto;
+
+        if (!esNombreValido(nombreIngresado)) {
+          return {
+            respuesta: "Ese no parece un nombre válido. Por favor, ingresá solo letras (ejemplo: Juan o María).",
+            botones: [],
+            requiereInput: true,
+            contexto: contextoActual, 
+            datosAcumulados: datosCliente.datosAcumulados
+          };
+        }
         const flujoDestino = contextoActual.split('ESPERANDO_NOMBRE_')[1]; 
 
         const textoAccion = flujoDestino === 'DERIVAR_HUMANO' 
@@ -118,7 +235,17 @@ export const procesarAccionBot = async (
       }
 
       if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
-        const telefonoIngresado = datosCliente.texto;
+        const telefonoIngresado = datosCliente.texto || '';
+        
+        if (!esTelefonoValido(telefonoIngresado)) {
+          return {
+            respuesta: "Ese número no parece válido. Por favor, ingresá solo números, entre 8 y 15 dígitos (ejemplo: 1123456789).",
+            botones: [],
+            requiereInput: true,
+            contexto: contextoActual, 
+            datosAcumulados: datosCliente.datosAcumulados 
+          };
+        }
         const nombreGuardado = datosCliente.datosAcumulados?.nombre || 'Cliente';
         const flujoDestino = contextoActual.split('ESPERANDO_TELEFONO_')[1];
         const carrito = datosCliente.datosAcumulados?.carrito || [];
@@ -207,11 +334,18 @@ export const procesarAccionBot = async (
             asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
             descripcion: descripcionConsulta,
             derivada: esDerivacion, 
-            estado: 'NUEVA'    
+            estado: esDerivacion ? EstadoConsulta.EN_PROCESO : EstadoConsulta.NUEVA    
           }
         });
+        if (esDerivacion) {
+          await tx.sesionChat.update({
+            where: { botId_sessionId: { botId: botId, sessionId: sessionId } },
+            data: { estado: EstadoChat.HUMANO_ATENDIENDO }
+          });
+        }
       });
-
+ 
+ 
         await enviarEventosQueue({
           botId, sessionId, tipoUsuario: 'CLIENTE',
           eventos: [{ tipo: `LEAD_CAPTURADO_${tipoConsultaFinal}`, fecha: new Date().toISOString() }]

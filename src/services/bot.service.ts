@@ -40,7 +40,7 @@ export const actualizarConfiguracionBot = async (data: UpdateBotInput) => {
   const actualizarBot = (slug?: string) => prisma.configuracionBot.update({
     where: { usuarioId: data.usuarioId },
     data: {
-      activo: data.activo,
+      activo: true,
       nombreNegocio: data.nombreNegocio?.trim(),
       ...(slug ? { slug } : {}),
       rubroId: data.rubroId,
@@ -116,4 +116,21 @@ export const actualizarSlugBot = async (data: UpdateSlugInput) => {
   );
 
   return slug;
+};
+
+export const cambiarEstadoBot = async (slug: string, nuevoEstado: boolean) => {
+  const bot = await prisma.configuracionBot.findUnique({
+    where: { slug: slug },
+  });
+
+  if (!bot) {
+    throw new Error('BOT_NOT_FOUND');
+  }
+
+  const botActualizado = await prisma.configuracionBot.update({
+    where: { slug: slug },
+    data: { activo: nuevoEstado },
+  });
+
+  return botActualizado;
 };

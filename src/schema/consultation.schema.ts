@@ -32,10 +32,16 @@ export const addConsultationMessageSchema = z.object({
 });
 
 export const updateConsultationStatusSchema = z.object({
-  estado: z.enum(['nueva', 'en_proceso', 'cerrada']),
+  estado: z.enum([
+    'nueva', 'en_proceso', 'resuelta', 'cerrada',
+    'NUEVA', 'EN_PROCESO', 'RESUELTA', 'CERRADA'
+  ]).transform((val) => val.toLowerCase()), 
 });
 
+const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/;
+const telefonoRegex = /^\+?[0-9]{8,15}$/;
+
 export const updatePublicContactSchema = z.object({
-  clienteNombre: z.string().trim().min(1).max(150),
-  clienteTelefono: z.string().trim().min(3).max(50),
+  clienteNombre: z.string().trim().min(1).max(150).regex(nombreRegex, { message: 'El nombre solo debe contener letras y espacios.' }),
+  clienteTelefono: z.string().trim().min(3).max(50).regex(telefonoRegex, { message: 'El teléfono debe contener entre 8 y 15 números.' }),
 });

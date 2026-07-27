@@ -70,44 +70,23 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
 
     if (consultaPrevia) {
       hasHistory = true; 
-      finalSessionId = uuidv4(); 
-    }
+    } else {
+    // si tiene session pero no se encuentra en la bd
+    finalSessionId = uuidv4();
+  }
   } else {
     // Es la primera vez que entra al chat
     finalSessionId = uuidv4();
   }
+
   return {
     sessionId: finalSessionId,
     hasHistory,
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',
-      descripcion: bot.descripcionBreve,
-      horario: bot.horarioAtencion,
-      telefono: bot.telefono,
-      logo: bot.logoUrl,
-      mensajeBienvenida: bot.mensajeBienvenida || '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
-      respuestaDerivacion: bot.respuestaDerivacion,
       colorPrimario: bot.colorPrimario,
       colorSecundario: bot.colorSecundario,
-      rubroId: bot.rubroId,
-      rubroNombre: bot.rubro?.nombre,
-      slug: bot.slug,
-      productos: bot.productos.map((producto) => ({
-        id: producto.id,
-        nombre: producto.nombre,
-        descripcion: producto.descripcion,
-        precio: Number(producto.precio),
-        precioConsultar: producto.requiereCotizacion,
-        imagen: producto.urlImagen,
-        disponible: producto.activo && producto.stock !== 0,
-      })),
-    },
-    // Campos planos conservados para clientes que consumían el contrato anterior.
-    botId: bot.id,
-    nombre: bot.nombreNegocio || 'Asistente Virtual',
-    mensajeBienvenida: bot.mensajeBienvenida || '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?',
-    colorPrimario: bot.colorPrimario,
-    colorSecundario: bot.colorSecundario,
+    }
   };
 };
