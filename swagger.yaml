@@ -541,7 +541,82 @@ paths:
             application/json:
               example:
                 error: "Demasiados intentos. Esperá 15 minutos antes de volver a intentar."
- 
+  /api/auth/google:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión con Google
+      description: |
+        Autentica o registra un usuario mediante el token de identidad (credential) proporcionado por Google.
+        Si el usuario no existe en la base de datos, se crea automáticamente la cuenta y la configuración inicial de su bot.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential:
+                  type: string
+                  description: "ID Token JWT emitido por Google (Credential)"
+                  example: "eyJhbGciOiJSUzI1NiIsImtpZ..."
+      responses:
+        '200':
+          description: Login con Google exitoso. Devuelve el JWT de la API y datos del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Login con Google exitoso"
+                  token:
+                    type: string
+                    description: JWT para usar en el header Authorization.
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      nombre:
+                        type: string
+                      email:
+                        type: string
+                      rol:
+                        type: string
+        '400':
+          description: Faltan credenciales (error de validación de Zod).
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Los datos enviados no son válidos"
+                detalles:
+                  - campo: "credential"
+                    mensaje: "La credencial de Google es obligatoria"
+        '401':
+          description: Credencial inválida o rechazada por Google.
+          content:
+            application/json:
+              example:
+                error: "La credencial de Google no es válida"
+        '403':
+          description: Cuenta inactiva o eliminada.
+          content:
+            application/json:
+              example:
+                error: "Esta cuenta se encuentra suspendida o eliminada"
+        '503':
+          description: El backend no tiene configuradas las variables de entorno de Google.
+          content:
+            application/json:
+              example:
+                error: "El inicio de sesión con Google no está configurado"
   # ==========================================================================
   # CUENTA DE USUARIO
   # ==========================================================================
@@ -607,6 +682,12 @@ paths:
                         mensaje: "La nueva contraseña no puede ser igual a la actual"
         '401':
           description: Token inválido o expirado
+        '404':
+          description: Usuario no encontrado o la cuenta está inactiva
+          content:
+            application/json:
+              example:
+                error: "Usuario no encontrado o la cuenta está inactiva"
  
   /api/user/delete-account:
     delete:
