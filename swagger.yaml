@@ -1781,6 +1781,12 @@ paths:
                     Identificador único de sesión del cliente. Generarlo con `crypto.randomUUID()`
                     al inicio de la sesión y reutilizarlo en todos los requests de esa sesión.
                   example: "3f7a9c12-4e8b-4d2f-a901-bc45de678901"
+                botId:
+                  type: string
+                  description: "ID del bot con el que se está interactuando (opcional)."
+                tipoUsuario:
+                  type: string
+                  enum: [ANONIMO, EMPRENDEDOR, CLIENTE]
                 eventos:
                   type: array
                   minItems: 1
@@ -2553,3 +2559,71 @@ paths:
           description: Listado de consultas derivadas obtenido con éxito.
         '500':
           description: Error interno al obtener las consultas.
+
+# ==========================================================================
+  # PRESUPUESTOS 
+  # ==========================================================================
+  /api/presupuestos/{id}/cotizar:
+    put:
+      tags: [Presupuestos]
+      summary: Cotizar un presupuesto y generar el PDF formal
+      description: |
+        Permite al emprendedor ingresar los valores finales a los ítems de un presupuesto pendiente.
+        
+        **Lo que hace internamente:**
+        1. Actualiza los valores en la base de datos y cambia el estado a `ENVIADO`.
+        2. Genera un documento PDF con formato formal (colores, logo, tabla de precios) usando PDFKit.
+        3. Sube el documento a Cloudinary.
+        4. Borra el archivo local y guarda la URL segura en la base de datos.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^\d+$'
+          description: ID numérico del presupuesto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemsCotizados]
+              properties:
+                itemsCotizados:
+                  type: array
+                  minItems: 1
+                  description: "Lista de ítems con sus precios definidos. Debe contener al menos un elemento."
+                  items:
+                    type: object
+                    required: [nombre, cantidad, precioUnitario]
+                    properties:
+                      nombre:
+                        type: string
+                        minLength: 1
+                        example: "Diseño de Marca"
+                      cantidad:
+                        type: number
+                        exclusiveMinimum: 0
+                        example: 1
+                      precioUnitario:
+                        type: number
+                        minimum: 0
+                        example: 45000.50
+      responses:
+        '200':
+          description: Presupuesto cotizado, base de datos actualizada y PDF generado exitosamente en Cloudinary.
+          content:
+            application/json:
+              example:
+                mensaje: "Presupuesto cotizado, actualizado y PDF generado con éxito."
+                rutaPdf: "https://res.cloudinary.com/micloud/image/upload/v1234/presupuestos_clientes/presupuesto_N123_Cliente_01-01-2026.pdf"
+        '400':
+          description: Error de validación Zod (ej. el ID no es numérico o un precio es negativo).
+        '401':
+          description: No autenticado o falta el token del emprendedor.
+        '500':
+          description: Error interno al generar el PDF mediante PDFKit o falló la subida a Cloudinary.
