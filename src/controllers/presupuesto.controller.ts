@@ -22,6 +22,7 @@ const responderErrorConocido = (error: unknown, res: Response): boolean => {
   const respuestas = {
     CONSULTATION_NOT_FOUND: [404, 'La consulta no existe o no pertenece a tu negocio.'],
     PRODUCT_NOT_FOUND: [404, 'Uno de los productos no existe o no pertenece a tu negocio.'],
+    CONTACT_REQUIRED: [422, 'Ingresá nombre y teléfono antes de solicitar el presupuesto.'],
     BUDGET_NOT_FOUND: [404, 'El presupuesto no existe o no pertenece a tu negocio.'],
     INVALID_STATE_TRANSITION: [409, 'La transición de estado solicitada no está permitida.'],
     IDEMPOTENCY_CONFLICT: [409, 'La clave de idempotencia ya está asociada a otro recurso.'],

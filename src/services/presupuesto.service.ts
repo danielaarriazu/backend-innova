@@ -18,6 +18,7 @@ import {
 export type PresupuestoErrorCode =
   | 'CONSULTATION_NOT_FOUND'
   | 'PRODUCT_NOT_FOUND'
+  | 'CONTACT_REQUIRED'
   | 'BUDGET_NOT_FOUND'
   | 'INVALID_STATE_TRANSITION'
   | 'IDEMPOTENCY_CONFLICT';
@@ -135,10 +136,15 @@ async function obtenerConsultaPropia(consultaId: string, usuarioId?: string, slu
       ...(usuarioId ? { bot: { usuarioId } } : {}),
       ...(slugPublico ? { bot: { slug: slugPublico, activo: true } } : {}),
     },
-    select: { id: true, botId: true },
+    select: {
+      id: true,
+      botId: true,
+      lead: { select: { id: true } },
+    },
   });
 
   if (!consulta) throw new PresupuestoError('CONSULTATION_NOT_FOUND');
+  if (slugPublico && !consulta.lead) throw new PresupuestoError('CONTACT_REQUIRED');
   return consulta;
 }
 
@@ -234,6 +240,22 @@ export async function crearPresupuestoPublico(input: CrearPresupuestoPublicoInpu
     diasValidez: input.diasValidez,
     idempotencyKey: input.idempotencyKey,
     estadoInicial: requiereCotizacion ? 'PENDIENTE' : 'ENVIADO',
+  });
+
+  await prisma.consulta.update({
+    where: { id: input.consultaId },
+    data: requiereCotizacion
+      ? {
+          tipoConsulta: 'COTIZACION',
+          asunto: 'Solicitud de Cotización',
+          derivada: true,
+          estado: 'EN_PROCESO',
+        }
+      : {
+          tipoConsulta: 'PRESUPUESTO',
+          asunto: 'Solicitud de Presupuesto',
+          derivada: false,
+        },
   });
 
   if (requiereCotizacion || resultado.presupuesto.linkPdf) return resultado;

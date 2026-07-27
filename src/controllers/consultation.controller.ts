@@ -74,6 +74,7 @@ export const updatePublicConsultationContact = async (req: Request, res: Respons
       req.params.id,
       req.body.clienteNombre,
       req.body.clienteTelefono,
+      req.body.motivo,
     );
     res.status(200).json({ success: true, consulta });
   } catch (error: unknown) {
