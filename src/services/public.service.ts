@@ -1,6 +1,9 @@
 import prisma from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
+const resolverNombreNegocio = (mensaje: string | null, nombre: string) =>
+  mensaje?.replaceAll('{nombreNegocio}', nombre);
+
 export const obtenerProductosPublicos = async (slug: string) => {
   const bot = await prisma.configuracionBot.findUnique({
     where: { slug },
@@ -90,8 +93,29 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',
+      descripcion: bot.descripcionBreve,
+      horario: bot.horarioAtencion,
+      telefono: bot.telefono,
+      logo: bot.logoUrl,
+      mensajeBienvenida: resolverNombreNegocio(
+        bot.mensajeBienvenida,
+        bot.nombreNegocio || 'tu negocio',
+      ),
+      respuestaDerivacion: bot.respuestaDerivacion,
       colorPrimario: bot.colorPrimario,
       colorSecundario: bot.colorSecundario,
+      rubroId: bot.rubroId,
+      rubroNombre: bot.rubro?.nombre,
+      slug: bot.slug,
+      productos: bot.productos.map((producto) => ({
+        id: producto.id,
+        nombre: producto.nombre,
+        descripcion: producto.descripcion,
+        precio: producto.precio,
+        precioConsultar: producto.requiereCotizacion,
+        imagen: producto.urlImagen,
+        disponible: producto.activo,
+      })),
     }
   };
 };

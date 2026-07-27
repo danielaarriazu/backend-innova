@@ -3,6 +3,39 @@ import { registrarActividad } from './activity.service';
 import { UpdateBotInput, UpdateSlugInput } from '../types/bot.types';
 import { esConflictoSlug, generarSlug, generarSlugUnico } from '../utils/slug';
 
+const mensajeBienvenidaAutomatico = (nombre: string) =>
+  `¡Hola! Soy el asistente de ${nombre} ¿En qué te puedo ayudar? Elige una opción para continuar.`;
+
+const resolverMensajeBienvenida = (
+  mensajeEntrante: string | undefined,
+  nombreEntrante: string | undefined,
+  nombreAnterior: string | null,
+  mensajeAnterior: string | null,
+) => {
+  if (mensajeEntrante === undefined) return undefined;
+
+  const mensaje = mensajeEntrante.trim();
+  const nuevoNombre = nombreEntrante?.trim();
+  const mensajeAnteriorEraAutomatico = Boolean(
+    !mensajeAnterior?.trim()
+    || mensajeAnterior.trim() === '¡Hola! ¿En qué te puedo ayudar?'
+    || mensajeAnterior.trim() === '¡Hola! ¿En qué te puedo ayudar hoy?'
+    || nombreAnterior && mensajeAnterior.trim() === mensajeBienvenidaAutomatico(nombreAnterior),
+  );
+
+  if (
+    nuevoNombre
+    && (
+      mensaje.includes('{nombreNegocio}')
+      || mensajeAnteriorEraAutomatico && mensaje === mensajeAnterior?.trim()
+    )
+  ) {
+    return mensajeBienvenidaAutomatico(nuevoNombre);
+  }
+
+  return mensaje;
+};
+
 export const obtenerConfiguracionBot = async (usuarioId: string) => {
   const bot = await prisma.configuracionBot.findUnique({
     where: { usuarioId },
@@ -33,6 +66,12 @@ export const actualizarConfiguracionBot = async (data: UpdateBotInput) => {
   }
 
   const textoBaseSlug = data.nombreNegocio?.trim() || botExistente.nombreNegocio || 'negocio';
+  const mensajeBienvenida = resolverMensajeBienvenida(
+    data.mensajeBienvenida,
+    data.nombreNegocio,
+    botExistente.nombreNegocio,
+    botExistente.mensajeBienvenida,
+  );
   let slugParaAsignar = botExistente.slug
     ? undefined
     : await generarSlugUnico(textoBaseSlug);
@@ -49,7 +88,7 @@ export const actualizarConfiguracionBot = async (data: UpdateBotInput) => {
       telefono: data.telefono?.trim(),
       respuestaDerivacion: data.respuestaDerivacion?.trim(),
       logoUrl: data.logoUrl?.trim(),
-      mensajeBienvenida: data.mensajeBienvenida?.trim(),
+      mensajeBienvenida,
       mensajeFueraHorario: data.mensajeFueraHorario?.trim(),
       derivacionAutomatica: data.derivacionAutomatica,
       colorPrimario: data.colorPrimario,
