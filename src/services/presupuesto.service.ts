@@ -139,3 +139,52 @@ export async function cotizarYActualizarPresupuesto(
 
   return await gestionarSubidaNube(presupuestoId, rutaPdfGenerado, 'auto');
 }
+
+export async function obtenerPresupuestosFiltrados(
+  usuarioId: string, 
+  filtros: { origen?: 'EMPRENDEDOR' | 'CHATBOT'; estado?: string; page: number; limit: number }
+) {
+  const bot = await prisma.configuracionBot.findUnique({ where: { usuarioId } });
+  if (!bot) throw new Error('BOT_NOT_FOUND');
+
+  const { origen, estado, page, limit } = filtros;
+
+  const whereClause: any = {
+    consulta: {
+      botId: bot.id,
+    },
+  };
+
+  if (estado) {
+    whereClause.estado = estado.toUpperCase();
+  }
+
+  if (origen) {
+    whereClause.origen = origen.toUpperCase();
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [presupuestos, total] = await prisma.$transaction([
+    prisma.presupuesto.findMany({
+      where: whereClause,
+      include: {
+        consulta: {
+          include: { lead: true },
+        },
+      },
+      orderBy: { fechaCreacion: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.presupuesto.count({ where: whereClause }),
+  ]);
+
+  return {
+    presupuestos,
+    total,
+    page,
+    limit,
+    totalPaginas: Math.ceil(total / limit),
+  };
+}

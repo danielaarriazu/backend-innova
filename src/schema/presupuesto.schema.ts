@@ -14,3 +14,14 @@ export const cotizarPresupuestoSchema = z.object({
     ).min(1, 'Debes enviar al menos un item para cotizar'),
   }),
 });
+
+export const getPresupuestosSchema = z.object({
+  origen: z.enum(['emprendedor', 'chatbot', 'EMPRENDEDOR', 'CHATBOT'], { error: 'Origen inválido' })
+    .transform(val => val.toUpperCase())
+    .optional(),
+  estado: z.enum(['PENDIENTE', 'EN_PROCESO',  'ENVIADO', 'CONCRETADO', 'RECHAZADO', 'pendiente', 'en_proceso', 'enviado', 'concretado', 'rechazado'], { error: 'Estado inválido' })
+    .transform(val => val.toUpperCase())
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});

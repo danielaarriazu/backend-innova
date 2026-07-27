@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { cotizarYActualizarPresupuesto } from '../services/presupuesto.service';
+import { Request, Response, NextFunction } from 'express';
+import { cotizarYActualizarPresupuesto, obtenerPresupuestosFiltrados } from '../services/presupuesto.service';
 import { ItemPresupuesto } from '../types/pdf.types';
 
 export const cotizarPresupuesto = async (req: Request, res: Response): Promise<void> => {
@@ -25,5 +25,21 @@ export const cotizarPresupuesto = async (req: Request, res: Response): Promise<v
       error: 'Ocurrió un error interno al actualizar el presupuesto.',
       detalle: error.message 
     });
+  }
+};
+
+export const listarPresupuestos = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const usuarioId = req.usuario!.id;
+    const filtros = req.query as any;
+
+    const resultado = await obtenerPresupuestosFiltrados(usuarioId, filtros);
+    res.status(200).json({ success: true, ...resultado });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
+      res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+      return;
+    }
+    next(error);
   }
 };

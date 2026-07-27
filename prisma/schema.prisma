@@ -200,6 +200,12 @@ enum estadoPresupuesto {
   CONCRETADO
   RECHAZADO
 }
+
+enum OrigenPresupuesto {
+  EMPRENDEDOR
+  CHATBOT
+}
+
 model RegistroActividad {
   id          String   @id @default(uuid())
   usuarioId   String
@@ -314,8 +320,10 @@ model Presupuesto {
   fechaVencimiento  DateTime
   
   // Aquí guardaremos la "foto" de lo que se cotizó
-  detalle           Json              
-  
+  detalle           Json      
+  origen          OrigenPresupuesto @default(EMPRENDEDOR)
+  total              Decimal           @default(0) @db.Decimal(14, 2) 
+  idempotencyKey     String?           @unique
   // Relación con Consulta
   consultaId        String
   consulta   Consulta @relation(fields: [consultaId], references: [id])
