@@ -25,3 +25,13 @@ export const getPresupuestosSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
 });
+
+export const actualizarEstadoPresupuestoSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^\d+$/, 'El ID del presupuesto debe ser un número válido'),
+  }),
+  body: z.object({
+    estado: z.enum(['PENDIENTE', 'EN_PROCESO', 'ENVIADO', 'CONCRETADO', 'RECHAZADO', 'pendiente', 'en_proceso', 'enviado', 'concretado', 'rechazado'], { error: 'Estado de presupuesto inválido' })
+      .transform(val => val.toUpperCase()),
+  }),
+});

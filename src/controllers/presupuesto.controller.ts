@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { cotizarYActualizarPresupuesto, obtenerPresupuestosFiltrados } from '../services/presupuesto.service';
+import { actualizarEstadoPresupuesto, cotizarYActualizarPresupuesto, obtenerPresupuestoPorId, obtenerPresupuestosFiltrados } from '../services/presupuesto.service';
 import { ItemPresupuesto } from '../types/pdf.types';
 
 export const cotizarPresupuesto = async (req: Request, res: Response): Promise<void> => {
@@ -39,6 +39,60 @@ export const listarPresupuestos = async (req: Request, res: Response, next: Next
     if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
       res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
       return;
+    }
+    next(error);
+  }
+};
+
+export const cambiarEstadoPresupuesto = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const usuarioId = req.usuario!.id;
+    const presupuestoId = Number(req.params.id);
+    const { estado } = req.body;
+
+    const presupuestoActualizado = await actualizarEstadoPresupuesto(usuarioId, presupuestoId, estado);
+
+    res.status(200).json({
+      success: true,
+      mensaje: `Estado del presupuesto actualizado a ${estado} con éxito.`,
+      presupuesto: presupuestoActualizado,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'PRESUPUESTO_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Presupuesto no encontrado o no pertenece a tu bot.' });
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
+export const obtenerPresupuestoDetalle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const usuarioId = req.usuario!.id;
+    const presupuestoId = Number(req.params.id);
+
+    const presupuesto = await obtenerPresupuestoPorId(usuarioId, presupuestoId);
+
+    res.status(200).json({
+      success: true,
+      presupuesto,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'PRESUPUESTO_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Presupuesto no encontrado o no pertenece a tu bot.' });
+        return;
+      }
     }
     next(error);
   }

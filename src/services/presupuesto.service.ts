@@ -112,7 +112,8 @@ export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPre
       estado: estadoInicial, 
       detalle: items as unknown as Prisma.InputJsonArray,
       validezDias: diasValidez,
-      fechaVencimiento: fechaVencimiento
+      fechaVencimiento: fechaVencimiento,
+      origen: 'CHATBOT'
     }
   });
 
@@ -131,7 +132,8 @@ export async function cotizarYActualizarPresupuesto(
       detalle: itemsCotizados as unknown as Prisma.InputJsonArray,
       estado: 'ENVIADO',
       validezDias: diasValidez,
-      fechaVencimiento: fechaVencimiento
+      fechaVencimiento: fechaVencimiento,
+      origen: 'EMPRENDEDOR'
     }
   });
 
@@ -187,4 +189,79 @@ export async function obtenerPresupuestosFiltrados(
     limit,
     totalPaginas: Math.ceil(total / limit),
   };
+}
+
+export async function actualizarEstadoPresupuesto(
+  usuarioId: string, 
+  presupuestoId: number, 
+  nuevoEstado: 'PENDIENTE' | 'EN_PROCESO' | 'ENVIADO' | 'CONCRETADO' | 'RECHAZADO'
+) {
+  const bot = await prisma.configuracionBot.findUnique({ where: { usuarioId } });
+  if (!bot) throw new Error('BOT_NOT_FOUND');
+
+  // Verificamos que el presupuesto pertenezca a una consulta del bot del usuario
+  const presupuestoExistente = await prisma.presupuesto.findFirst({
+    where: {
+      id: presupuestoId,
+      consulta: {
+        botId: bot.id,
+      },
+    },
+  });
+
+  if (!presupuestoExistente) {
+    throw new Error('PRESUPUESTO_NOT_FOUND');
+  }
+
+  const presupuestoActualizado = await prisma.presupuesto.update({
+    where: { id: presupuestoId },
+    data: {
+      estado: nuevoEstado,
+    },
+    include: {
+      consulta: {
+        include: { lead: true },
+      },
+    },
+  });
+
+  return presupuestoActualizado;
+}
+
+export async function obtenerPresupuestoPorId(usuarioId: string, presupuestoId: number) {
+  const bot = await prisma.configuracionBot.findUnique({ where: { usuarioId } });
+  if (!bot) throw new Error('BOT_NOT_FOUND');
+
+  const presupuesto = await prisma.presupuesto.findFirst({
+    where: {
+      id: presupuestoId,
+      consulta: {
+        botId: bot.id,
+      },
+    },
+    include: {
+      consulta: {
+        include: { lead: true },
+      },
+    },
+  });
+
+  if (!presupuesto) {
+    throw new Error('PRESUPUESTO_NOT_FOUND');
+  }
+
+  if (presupuesto.estado === 'PENDIENTE') {
+    const presupuestoActualizado = await prisma.presupuesto.update({
+      where: { id: presupuestoId },
+      data: { estado: 'EN_PROCESO' },
+      include: {
+        consulta: {
+          include: { lead: true },
+        },
+      },
+    });
+    return presupuestoActualizado;
+  }
+
+  return presupuesto;
 }
