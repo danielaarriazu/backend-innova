@@ -58,6 +58,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
 
   let hasHistory = false;
   let finalSessionId = sessionId;
+  let consultationId: string | null = null;
   
   if (finalSessionId) {
     // Buscamos si este cliente ya tenía una conversación previa
@@ -65,15 +66,18 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
       where: {
         sessionId: finalSessionId,
         botId: bot.id 
-      }
+      },
+      orderBy: { fechaActualizacion: 'desc' },
+      select: { id: true },
     });
 
     if (consultaPrevia) {
-      hasHistory = true; 
+      hasHistory = true;
+      consultationId = consultaPrevia.id;
     } else {
-    // si tiene session pero no se encuentra en la bd
-    finalSessionId = uuidv4();
-  }
+      // Si tiene session pero no se encuentra en la BD, se inicia una nueva.
+      finalSessionId = uuidv4();
+    }
   } else {
     // Es la primera vez que entra al chat
     finalSessionId = uuidv4();
@@ -82,6 +86,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
   return {
     sessionId: finalSessionId,
     hasHistory,
+    consultationId,
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',
