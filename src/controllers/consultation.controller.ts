@@ -118,3 +118,18 @@ export const updateChatControl = async (req: Request, res: Response, next: NextF
     if (!handleKnownError(error, res)) next(error);
   }
 };
+
+export const getConsultasEmprendedor = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params; 
+    
+    const filtro = req.query.filtro as string;
+
+    const consultas = await consultationService.obtenerConsultasDerivadas(slug, filtro);
+    
+    return res.status(200).json(consultas);
+  } catch (error) {
+    console.error('Error al obtener consultas:', error);
+    return res.status(500).json({ error: 'Error interno al obtener las consultas' });
+  }
+};

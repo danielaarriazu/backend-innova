@@ -45,3 +45,7 @@ export const updatePublicContactSchema = z.object({
   clienteNombre: z.string().trim().min(1).max(150).regex(nombreRegex, { message: 'El nombre solo debe contener letras y espacios.' }),
   clienteTelefono: z.string().trim().min(3).max(50).regex(telefonoRegex, { message: 'El teléfono debe contener entre 8 y 15 números.' }),
 });
+
+export const slugParamsSchema = z.object({
+  slug: z.string().min(1, 'El slug de la tienda es requerido'),
+});
