@@ -18,24 +18,35 @@ export const getProductosPublicos = async (
   }
 };
 
-export const getFAQsPublicas = async (
+export const getFaqsPublicas = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  // Extraemos el slug fuera del try/catch
+  const { slug } = req.params;
+
   try {
-    const { slug } = req.params;
+    // Llamamos al servicio que ya tienes creado
     const faqs = await publicService.obtenerFAQsPublicas(slug);
     
-    res.status(200).json({ success: true, faqs });
+    // Si todo va bien, respondemos con las FAQs
+    res.status(200).json({ success: true, data: faqs });
+    
   } catch (error: unknown) {
+    // Si salta nuestro error personalizado, enviamos el debug
     if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
-      res.status(404).json({ success: false, error: 'Negocio o bot no encontrado.' });
+      res.status(404).json({ 
+        success: false, 
+        error: 'Negocio o bot no encontrado.', 
+        detalleDebug: `El slug recibido en FAQs fue: "${slug}"` // Las comillas ayudan a ver si hay espacios extra
+      });
       return;
     }
     next(error);
   }
 };
+
 export const getChatInit = async (
   req: Request,
   res: Response,
