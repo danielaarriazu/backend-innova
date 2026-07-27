@@ -1,4 +1,4 @@
-import { generarPresupuestoFormal } from './src/services/pdf.service'; 
+import { generarPresupuestoFormal } from '../src/services/pdf.service'; 
 
 const itemsPrueba = [
   { nombre: 'Desarrollo Backend en Node.js', cantidad: 1, precioUnitario: 150000 },

@@ -1,6 +1,6 @@
 // update-slugs.ts
-import prisma from './src/lib/prisma';
-import { generarSlug } from './src/utils/slug';
+import prisma from '../src/lib/prisma';
+import { generarSlug } from '../src/utils/slug';
 
 async function poblarSlugs() {
   try {

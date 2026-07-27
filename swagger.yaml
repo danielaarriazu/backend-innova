@@ -2563,6 +2563,112 @@ paths:
 # ==========================================================================
   # PRESUPUESTOS 
   # ==========================================================================
+  /api/presupuestos:
+    get:
+      tags: [Presupuestos]
+      summary: Listar y filtrar presupuestos
+      description: |
+        Devuelve una lista paginada de presupuestos correspondientes al bot del emprendedor.
+        Permite filtrar por origen y por estado actual del presupuesto.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: origen
+          schema:
+            type: string
+            enum: [EMPRENDEDOR, CHATBOT]
+          description: Filtrar por el origen del presupuesto (quién lo generó).
+        - in: query
+          name: estado
+          schema:
+            type: string
+            enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
+          description: Filtrar por el estado del presupuesto.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Número de página.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Cantidad de resultados por página.
+      responses:
+        '200':
+          description: Lista de presupuestos filtrada y paginada obtenida con éxito.
+        '400':
+          description: Error de validación en los parámetros de búsqueda.
+        '401':
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
+
+  /api/presupuestos/{id}:
+    get:
+      tags: [Presupuestos]
+      summary: Obtener detalle de un presupuesto (con cambio automático a EN_PROCESO)
+      description: |
+        Devuelve la información detallada de un presupuesto mediante su ID. 
+        **Regla de Negocio:** Si el estado actual del presupuesto es `PENDIENTE` y el emprendedor lo visualiza, pasará automáticamente al estado `EN_PROCESO`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^\d+$'
+          description: ID numérico del presupuesto.
+      responses:
+        '200':
+          description: Presupuesto obtenido exitosamente.
+        '401':
+          description: No autenticado.
+        '404':
+          description: Presupuesto no encontrado o no pertenece a tu bot.
+
+  /api/presupuestos/{id}/estado:
+    patch:
+      tags: [Presupuestos]
+      summary: Cambiar estado de un presupuesto manualmente
+      description: Permite al emprendedor forzar un cambio de estado en el presupuesto hacia cualquier estado válido del ciclo de vida.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^\d+$'
+          description: ID numérico del presupuesto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: string
+                  enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
+                  description: El nuevo estado que se le asignará al presupuesto.
+      responses:
+        '200':
+          description: Estado del presupuesto actualizado exitosamente.
+        '400':
+          description: El estado enviado no es válido según los esquemas permitidos.
+        '401':
+          description: No autenticado.
+        '404':
+          description: Presupuesto no encontrado.
+
   /api/presupuestos/{id}/cotizar:
     put:
       tags: [Presupuestos]
