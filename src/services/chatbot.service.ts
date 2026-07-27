@@ -12,6 +12,9 @@ const ACCIONES_QUE_INICIAN_PROCESO = [
   'SOLICITAR_PRESUPUESTO', 
 ];
 
+const esNombreValido = (texto: string) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/.test(texto.trim());
+const esTelefonoValido = (texto: string) => /^\+?[0-9\s-]{8,15}$/.test(texto.trim());
+
 export const gestionarInteraccion = async (payload: ChatbotPayload) => {
   const { accion, sessionId, botId, datosCliente, contexto } = payload;
 
@@ -196,6 +199,16 @@ export const procesarAccionBot = async (
 
       if (contextoActual?.startsWith('ESPERANDO_NOMBRE_')) {
         const nombreIngresado = datosCliente.texto;
+
+        if (!esNombreValido(nombreIngresado)) {
+          return {
+            respuesta: "Ese no parece un nombre válido. Por favor, ingresá solo letras (ejemplo: Juan o María).",
+            botones: [],
+            requiereInput: true,
+            contexto: contextoActual, 
+            datosAcumulados: datosCliente.datosAcumulados
+          };
+        }
         const flujoDestino = contextoActual.split('ESPERANDO_NOMBRE_')[1]; 
 
         const textoAccion = flujoDestino === 'DERIVAR_HUMANO' 
@@ -216,6 +229,16 @@ export const procesarAccionBot = async (
 
       if (contextoActual?.startsWith('ESPERANDO_TELEFONO_')) {
         const telefonoIngresado = datosCliente.texto || '';
+        
+        if (!esTelefonoValido(telefonoIngresado)) {
+          return {
+            respuesta: "Ese número no parece válido. Por favor, ingresá solo números, entre 8 y 15 dígitos (ejemplo: 1123456789).",
+            botones: [],
+            requiereInput: true,
+            contexto: contextoActual, 
+            datosAcumulados: datosCliente.datosAcumulados 
+          };
+        }
         const nombreGuardado = datosCliente.datosAcumulados?.nombre || 'Cliente';
         const flujoDestino = contextoActual.split('ESPERANDO_TELEFONO_')[1];
         const carrito = datosCliente.datosAcumulados?.carrito || [];
