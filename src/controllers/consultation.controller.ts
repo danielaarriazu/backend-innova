@@ -74,7 +74,6 @@ export const updatePublicConsultationContact = async (req: Request, res: Respons
       req.params.id,
       req.body.clienteNombre,
       req.body.clienteTelefono,
-      req.body.motivo,
     );
     res.status(200).json({ success: true, consulta });
   } catch (error: unknown) {
@@ -104,13 +103,11 @@ export const addEntrepreneurMessage = async (req: Request, res: Response, next: 
 };
 export const updateChatControl = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Usamos el id del usuario autenticado y el id de la consulta/sesion
     const { estado } = req.body; 
     
-    // Llamamos al servicio (que crearemos en el paso 2)
     const sesion = await consultationService.actualizarControlChat({
       usuarioId: req.usuario!.id,
-      consultaId: req.params.id, // Asumiendo que pasas el ID de la consulta por URL
+      consultaId: req.params.id, 
       estado,
     });
 

@@ -209,6 +209,7 @@ export async function actualizarEstadoPresupuesto(
         botId: bot.id,
       },
     },
+      include: { consulta: true },
   });
 
   if (!presupuestoExistente) {
@@ -226,6 +227,33 @@ export async function actualizarEstadoPresupuesto(
       },
     },
   });
+  if (nuevoEstado === 'CONCRETADO') {
+    const consultaId = presupuestoExistente.consulta.id;
+    await prisma.consulta.update({
+      where: { id: consultaId },
+      data: {
+        estado: 'CERRADA',
+        cerradaPor: 'EMPRENDEDOR',
+        fechaCierre: new Date(),
+      },
+    });
+ 
+    if (presupuestoExistente.consulta.sessionId) {
+      try {
+        await prisma.sesionChat.update({
+          where: {
+            botId_sessionId: {
+              botId: bot.id,
+              sessionId: presupuestoExistente.consulta.sessionId,
+            },
+          },
+          data: { estado: 'BOT_ACTIVO', contexto: 'INICIO'  },
+        });
+      } catch (error) {
+        console.error(`No se pudo reactivar el bot para la consulta ${consultaId}:`, error);
+      }
+    }
+  }
 
   return presupuestoActualizado;
 }
@@ -329,7 +357,9 @@ export async function crearPresupuestoPublico(input: CrearPresupuestoPublicoInpu
           descripcion,
         }
       : {
-          estado: 'RESUELTA',
+          estado: 'CERRADA',
+          cerradaPor: 'BOT',
+          fechaCierre: new Date(),
           tipoConsulta: 'PRESUPUESTO',
           asunto: 'Solicitud de Presupuesto/Cotización',
           descripcion,

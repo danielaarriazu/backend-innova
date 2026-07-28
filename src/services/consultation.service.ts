@@ -116,7 +116,7 @@ export const actualizarEstado = async (data: UpdateConsultationStatusInput) => {
             },
           },
           data: {
-            estado: EstadoChat.BOT_ACTIVO, // Asegurate de tener importado EstadoChat si usás el enum estricto
+            estado: EstadoChat.BOT_ACTIVO, 
           },
         });
       } catch (error) {
@@ -190,7 +190,6 @@ export const actualizarContactoPublico = async (
   consultaId: string,
   clienteNombre: string,
   clienteTelefono: string,
-  motivo: 'derivacion' | 'presupuesto' = 'derivacion',
 ) => {
   const consulta = await prisma.consulta.findFirst({
     where: { id: consultaId, bot: { slug, activo: true } },
@@ -231,18 +230,12 @@ export const actualizarContactoPublico = async (
 
     return tx.consulta.update({
       where: { id: consultaId },
-      data: motivo === 'derivacion'
-        ? {
-            derivada: true,
-            estado: EstadoConsulta.EN_PROCESO,
-            tipoConsulta: 'DERIVAR_HUMANO',
-            asunto: 'Derivación de Chatbot',
-          }
-        : {
-            derivada: false,
-            tipoConsulta: 'PRESUPUESTO',
-            asunto: 'Solicitud de Presupuesto',
-          },
+      data: {
+        derivada: true,
+        estado: EstadoConsulta.EN_PROCESO,
+        tipoConsulta: 'DERIVAR_HUMANO',
+        asunto: 'Derivación de Chatbot',
+      },
       include: consultationInclude,
     });
   });
@@ -298,7 +291,8 @@ export const actualizarControlChat = async (params: { usuarioId: string; consult
       }
     },
     data: {
-      estado
+      estado,
+      ...(estado === EstadoChat.BOT_ACTIVO ? { contexto: 'INICIO' } : {}),
     }
   });
 

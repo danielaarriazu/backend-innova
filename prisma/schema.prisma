@@ -94,6 +94,7 @@ model CategoriaFAQ {
   faqs Faq[]
 
   fechaCreacion DateTime @default(now())
+  fechaActualizacion DateTime @default(now()) @updatedAt
 }
 
 model Faq {
