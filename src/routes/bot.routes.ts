@@ -26,6 +26,6 @@ router.patch('/slug', verificarToken, authorize('EMPRENDEDOR'), validate(updateS
 
 router.get('/rubros', obtenerRubros);
 
-router.patch('/:slug/status',verificarToken, authorize('EMPRENDEDOR'), validate(toggleBotStatusSchema), toggleBotStatus )
+router.patch('/:slug/status',verificarToken, authorize('EMPRENDEDOR'), validate(toggleBotStatusSchema, 'all'), toggleBotStatus )
 
 export default router;

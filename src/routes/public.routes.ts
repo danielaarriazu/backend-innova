@@ -11,6 +11,7 @@ import {
   createConsultationSchema,
   updatePublicContactSchema,
 } from '../schema/consultation.schema';
+import { initBotSchema } from '../schema/public.schema';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ const router = Router();
 router.get('/chatbot/:slug/faqs', getFAQsPublicas);
 
 // Endpoint público: para inicializar el chat (saludo y botones)
-router.get('/chatbot/:slug/init', getChatInit);
+router.get('/chatbot/:slug/init', validate(initBotSchema, 'all'), getChatInit);
 
 // Endpoint público: para obtener productos activos del catálogo
 router.get('/chatbot/:slug/products', getProductosPublicos);

@@ -22,7 +22,14 @@ export const validate =
       return;
     }
 
-    (req as any)[target] = result.data;
+   if (target === 'all') {
+      const parsedData = result.data as { body?: any; query?: any; params?: any };
+      req.body = parsedData.body || req.body;
+      req.query = parsedData.query || req.query;
+      req.params = parsedData.params || req.params;
+    } else {
+      (req as any)[target] = result.data;
+    }
     next();
   };
 
@@ -32,4 +39,4 @@ function formatZodErrors(error: ZodError): Array<{ campo: string; mensaje: strin
     campo: e.path.join('.') || 'body',
     mensaje: e.message,
   }));
-}
+} 

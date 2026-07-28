@@ -140,10 +140,10 @@ export const crearConsultaPublica = async (data: CreateConsultationInput) => {
     data: {
       botId: bot.id,
       sessionId: data.sessionId,
-      tipoConsulta: data.tipoConsulta,
+      tipoConsulta: 'BOT',
       canal: data.canal ?? 'web',
-      asunto: data.asunto,
-      descripcion: data.descripcion,
+      asunto: 'INTERACCION_BOT',
+      descripcion: 'El cliente inicio el chat',
     },
     include: {
       ...consultationInclude,
