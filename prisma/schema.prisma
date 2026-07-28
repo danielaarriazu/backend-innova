@@ -141,6 +141,8 @@ model SesionChat {
   sessionId          String
   estado             EstadoChat @default(BOT_ACTIVO)
 
+  contexto           String           @default("INICIO")
+
   fechaCreacion      DateTime @default(now())
   fechaActualizacion DateTime @updatedAt
 

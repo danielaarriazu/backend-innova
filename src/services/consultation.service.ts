@@ -135,7 +135,6 @@ export const actualizarEstado = async (data: UpdateConsultationStatusInput) => {
 export const crearConsultaPublica = async (data: CreateConsultationInput) => {
   const bot = await prisma.configuracionBot.findUnique({ where: { slug: data.slug } });
   if (!bot || !bot.activo) throw new Error('BOT_NOT_FOUND');
-  console.log("🚨 [DEBUG] Payload recibido en crearConsultaPublica:", JSON.stringify(data, null, 2));
   const consulta = await prisma.consulta.create({
     data: {
       botId: bot.id,
@@ -159,12 +158,20 @@ export const agregarMensajePublico = async (data: AddConsultationMessageInput) =
   });
   if (!consulta) throw new Error('CONSULTATION_NOT_FOUND');
 
+  let tipoFinal: TipoMensaje = TipoMensaje.TEXTO;
+
+  if (data.emisor === RolEmisor.BOT) {
+    tipoFinal = data.esPresupuestoBot ? TipoMensaje.PRESUPUESTO : TipoMensaje.TEXTO;
+  } else if (data.emisor === RolEmisor.CLIENTE) {
+    tipoFinal = data.tipoMensaje === 'ACCION' ? TipoMensaje.ACCION : TipoMensaje.TEXTO;
+  }
+
   const mensaje = await prisma.mensaje.create({
     data: {
       consultaId: consulta.id,
       emisor: data.emisor as RolEmisor,
       contenido: data.contenido.trim(),
-      tipoMensaje: (data.tipoMensaje as TipoMensaje) ?? 'TEXTO',
+      tipoMensaje: tipoFinal,
       leido: data.emisor !== 'CLIENTE',
     },
   });
@@ -198,7 +205,7 @@ export const actualizarContactoPublico = async (
       data: {
         consultaId,
         emisor: RolEmisor.CLIENTE,
-        tipoMensaje: TipoMensaje.ACCION,
+        tipoMensaje: TipoMensaje.TEXTO,
         contenido: clienteTelefono,
       },
       select: { id: true },
@@ -239,7 +246,7 @@ export const actualizarContactoPublico = async (
   return toConsultationDto(actualizada);
 };
 
-export const agregarMensajeEmprendedor = async (usuarioId: string, consultaId: string, contenido: string) => {
+export const agregarMensajeEmprendedor = async (usuarioId: string, consultaId: string, contenido: string, esPresupuesto: boolean = false) => {
   const bot = await getBotByUser(usuarioId);
   
   const consulta = await prisma.consulta.findFirst({
@@ -252,7 +259,7 @@ export const agregarMensajeEmprendedor = async (usuarioId: string, consultaId: s
     data: {
       consultaId: consulta.id,
       emisor: RolEmisor.EMPRENDEDOR,
-      tipoMensaje: TipoMensaje.TEXTO,
+      tipoMensaje: esPresupuesto ? TipoMensaje.PRESUPUESTO : TipoMensaje.TEXTO,
       contenido: contenido.trim(),
       leido: false,
     },

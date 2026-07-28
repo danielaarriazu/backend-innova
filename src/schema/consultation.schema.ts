@@ -9,10 +9,7 @@ export const consultationParamsSchema = z.object({
 export const createConsultationSchema = z.object({
   sessionId: optionalText(200),
   sessionAnonimaId: optionalText(200),
-  tipoConsulta: optionalText(100),
-  canal: z.enum(['web', 'whatsapp']).default('web'),
-  asunto: optionalText(250),
-  descripcion: optionalText(2000),
+  canal: z.enum(['web', 'chatbot']).default('web'),
 }).transform(({ sessionAnonimaId, ...data }) => ({
   ...data,
   sessionId: data.sessionId ?? sessionAnonimaId,
@@ -28,7 +25,8 @@ export const addConsultationMessageSchema = z.object({
     }),
   contenido: z.string().trim().min(1, 'El mensaje no puede estar vacío').max(5000),
   tipoMensaje: z.enum(['TEXTO', 'ACCION', 'PRESUPUESTO', 'texto', 'accion', 'presupuesto'])
-    .transform((value) => value.toUpperCase() as 'TEXTO' | 'ACCION' | 'PRESUPUESTO'),
+    .transform((value) => value.toUpperCase() as 'TEXTO' | 'ACCION' | 'PRESUPUESTO')
+    .optional(),
 });
 
 export const updateConsultationStatusSchema = z.object({

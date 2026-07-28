@@ -17,6 +17,7 @@ export interface AddConsultationMessageInput {
   emisor: ConsultationSender;
   contenido: string;
   tipoMensaje?: string;
+  esPresupuestoBot?: boolean;
 }
 
 export interface UpdateConsultationStatusInput {
