@@ -5,6 +5,7 @@ import { registrarActividad } from './activity.service';
 
 const consultationInclude = {
   mensajes: { orderBy: { fechaCreacion: 'asc' as const } },
+  lead: { select: { nombre: true, telefono: true } },
 } satisfies Prisma.ConsultaInclude;
 
 type ConsultationWithMessages = Prisma.ConsultaGetPayload<{ include: typeof consultationInclude }>;
@@ -35,6 +36,8 @@ const toConsultationDto = (consulta: ConsultationWithMessages) => ({
   id: consulta.id,
   usuarioId: null,
   sessionId: consulta.sessionId,
+  clienteNombre: consulta.lead?.nombre ?? null,
+  clienteTelefono: consulta.lead?.telefono ?? null,
   estado: statusToApi(consulta.estado),
   derivada: consulta.derivada,
   cerradaPor: consulta.cerradaPor === CerradaPor.BOT
