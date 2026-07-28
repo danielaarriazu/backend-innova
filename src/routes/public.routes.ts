@@ -12,6 +12,8 @@ import {
   updatePublicContactSchema,
 } from '../schema/consultation.schema';
 import { initBotSchema } from '../schema/public.schema';
+import { createPublicBudget } from '../controllers/presupuesto.controller';
+import { crearPresupuestoPublicoSchema } from '../schema/presupuesto.schema';
 
 const router = Router();
 
@@ -39,6 +41,12 @@ router.patch(
   '/chatbot/:slug/consultations/:id/contact',
   validate(updatePublicContactSchema),
   updatePublicConsultationContact,
+);
+
+router.post(
+  '/chatbot/:slug/consultations/:id/budgets',
+  validate(crearPresupuestoPublicoSchema, 'all'),
+  createPublicBudget,
 );
 
 export default router;

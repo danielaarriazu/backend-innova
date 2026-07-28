@@ -344,7 +344,7 @@ export const procesarAccionBot = async (
                   asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
                   descripcion: descripcionConsulta,
                   derivada: esDerivacion, 
-                  estado: esDerivacion ? 'EN_PROCESO' : 'NUEVA'    
+                  estado: esDerivacion ? EstadoConsulta.EN_PROCESO : EstadoConsulta.RESUELTA   
                 }
               });
               
@@ -381,10 +381,11 @@ export const procesarAccionBot = async (
                   precioUnitario: Number(item.precio) || 0
                 }));
 
-                rutaPdfGenerado = await crearYEnviarPresupuesto(
+                const presupuestoCreado = await crearYEnviarPresupuesto(
                   consultaActiva.id, 
                   itemsPresupuesto
                 );
+                 rutaPdfGenerado = presupuestoCreado.linkPdf;
                 console.log(`[EXITO] PDF generado en: ${rutaPdfGenerado}`);
 
               } catch (error) {

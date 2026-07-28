@@ -35,3 +35,18 @@ export const actualizarEstadoPresupuestoSchema = z.object({
       .transform(val => val.toUpperCase()),
   }),
 });
+
+export const crearPresupuestoPublicoSchema = z.object({
+  params: z.object({
+    slug: z.string().min(1, 'El slug es requerido'),
+    id: z.string().uuid('El ID de la consulta debe ser un UUID válido'),
+  }),
+  body: z.object({
+    items: z.array(
+      z.object({
+        productoId: z.string().uuid('El productoId debe ser un UUID válido'),
+        cantidad: z.number().int().positive('La cantidad debe ser mayor que cero'),
+      })
+    ).min(1, 'Debes incluir al menos un ítem'),
+  }),
+});

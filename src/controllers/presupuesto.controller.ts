@@ -1,6 +1,47 @@
 import { Request, Response, NextFunction } from 'express';
-import { actualizarEstadoPresupuesto, cotizarYActualizarPresupuesto, obtenerPresupuestoPorId, obtenerPresupuestosFiltrados } from '../services/presupuesto.service';
+import { actualizarEstadoPresupuesto, 
+         cotizarYActualizarPresupuesto,
+         obtenerPresupuestoPorId, 
+         obtenerPresupuestosFiltrados,
+         crearPresupuestoPublico } from '../services/presupuesto.service';
 import { ItemPresupuesto } from '../types/pdf.types';
+
+const responderErrorConocido = (error: unknown, res: Response): boolean => {
+  if (!(error instanceof Error)) return false;
+  if (error.message === 'BOT_NOT_FOUND') {
+    res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+    return true;
+  }
+  if (error.message === 'CONSULTATION_NOT_FOUND') {
+    res.status(404).json({ success: false, error: 'Consulta no encontrada.' });
+    return true;
+  }
+  if (error.message === 'PRODUCTO_NOT_FOUND') {
+    res.status(400).json({ success: false, error: 'Uno o más productos no existen o no están activos en este catálogo.' });
+    return true;
+  }
+  return false;
+};
+
+export const createPublicBudget = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const resultado = await crearPresupuestoPublico({
+      slug: req.params.slug,
+      consultaId: req.params.id,
+      items: req.body.items,
+    });
+
+    res.status(201).json({
+      success: true,
+      presupuesto: resultado.presupuesto,
+      requiereCotizacionManual: resultado.requiereCotizacionManual,
+      total: resultado.total,
+      consulta: resultado.consulta,
+    });
+  } catch (error: unknown) {
+    if (!responderErrorConocido(error, res)) next(error);
+  }
+};
 
 export const cotizarPresupuesto = async (req: Request, res: Response): Promise<void> => {
   try {

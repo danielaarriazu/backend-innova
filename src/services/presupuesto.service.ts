@@ -1,7 +1,8 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, Producto } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { generarPresupuestoFormal } from './pdf.service';
 import { ItemPresupuesto, DatosNegocio } from '../types/pdf.types';
+import { CrearPresupuestoPublicoInput } from '../types/presupuesto.types';
 import {v2 as cloudinary} from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
@@ -118,8 +119,9 @@ export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPre
   });
 
   const rutaPdf = await generarPdfDesdeBaseDeDatos(nuevoPresupuesto.id);
+  const linkPdf = await gestionarSubidaNube(nuevoPresupuesto.id, rutaPdf, 'auto');
 
-  return await gestionarSubidaNube(nuevoPresupuesto.id, rutaPdf, 'auto');
+  return { id: nuevoPresupuesto.id, estado: nuevoPresupuesto.estado, linkPdf };
 }
 
 export async function cotizarYActualizarPresupuesto(
@@ -264,4 +266,91 @@ export async function obtenerPresupuestoPorId(usuarioId: string, presupuestoId: 
   }
 
   return presupuesto;
+}
+
+export async function crearPresupuestoPublico(input: CrearPresupuestoPublicoInput) {
+  const { slug, consultaId, items } = input;
+
+  const bot = await prisma.configuracionBot.findUnique({ where: { slug } });
+  if (!bot || !bot.activo) {
+    throw new Error('BOT_NOT_FOUND');
+  }
+
+  const consulta = await prisma.consulta.findFirst({
+    where: { id: consultaId, botId: bot.id },
+  });
+  if (!consulta) {
+    throw new Error('CONSULTATION_NOT_FOUND');
+  }
+
+  const productoIds = [...new Set(items.map((item) => item.productoId))];
+  const productos = await prisma.producto.findMany({
+    where: { id: { in: productoIds }, botId: bot.id, activo: true },
+  });
+
+  if (productos.length !== productoIds.length) {
+    throw new Error('PRODUCTO_NOT_FOUND');
+  }
+
+  const productoPorId = new Map<string, Producto>(productos.map((producto) => [producto.id, producto]));
+
+  const itemsPresupuesto: ItemPresupuesto[] = items.map((item) => {
+    const producto = productoPorId.get(item.productoId)!;
+    return {
+      nombre: producto.nombre,
+      cantidad: item.cantidad,
+      precioUnitario: producto.requiereCotizacion ? 0 : Number(producto.precio),
+    };
+  });
+
+  const requiereCotizacionManual = items.some(
+    (item) => productoPorId.get(item.productoId)!.requiereCotizacion,
+  );
+
+  const total = itemsPresupuesto.reduce(
+    (acumulado, item) => acumulado + item.cantidad * item.precioUnitario,
+    0,
+  );
+
+  const presupuestoCreado = await crearYEnviarPresupuesto(consultaId, itemsPresupuesto);
+
+  const descripcion = requiereCotizacionManual
+    ? 'El cliente solicitó un presupuesto que incluye productos a cotizar manualmente.'
+    : `El cliente solicitó un presupuesto. Total estimado: $${total}.`;
+
+  const consultaActualizada = await prisma.consulta.update({
+    where: { id: consultaId },
+    data: requiereCotizacionManual
+      ? {
+          derivada: true,
+          estado: 'EN_PROCESO',
+          tipoConsulta: 'COTIZACION',
+          asunto: 'Solicitud de Presupuesto/Cotización',
+          descripcion,
+        }
+      : {
+          estado: 'RESUELTA',
+          tipoConsulta: 'PRESUPUESTO',
+          asunto: 'Solicitud de Presupuesto/Cotización',
+          descripcion,
+        },
+  });
+
+  if (requiereCotizacionManual && consulta.sessionId) {
+    try {
+      await prisma.sesionChat.update({
+        where: { botId_sessionId: { botId: bot.id, sessionId: consulta.sessionId } },
+        data: { estado: 'HUMANO_ATENDIENDO' },
+      });
+    } catch (error) {
+      console.error(`No se pudo pasar a HUMANO_ATENDIENDO la sesión de la consulta ${consultaId}:`, error);
+    }
+  }
+
+  return {
+    presupuesto: presupuestoCreado,
+    requiereCotizacionManual,
+    total: requiereCotizacionManual ? null : total,
+    consulta: consultaActualizada,
+  };
 }

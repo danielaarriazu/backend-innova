@@ -24,12 +24,7 @@ export interface CrearPresupuestoInput {
 export interface CrearPresupuestoPublicoInput {
   slug: string;
   consultaId: string;
-  items: Array<Omit<PresupuestoItemInput, 'precioUnitario'> & {
-    precioUnitario?: number;
-    requiereCotizacion: boolean;
-  }>;
-  diasValidez?: number;
-  idempotencyKey: string;
+  items: Array<{ productoId: string; cantidad: number }>;
 }
 
 export interface ListarPresupuestosInput {
