@@ -30,11 +30,12 @@ export async function generarPdfDesdeBaseDeDatos(presupuestoId: number): Promise
 
   const lead = presupuesto.consulta.lead;
   let clienteNombre = 'Cliente sin registrar';
+  let clienteTelefono = 'No informado';
 
   if (lead) {
-    clienteNombre = lead.nombre || lead.telefono;
+    clienteNombre = lead.nombre || lead.telefono|| 'Cliente sin registrar';
+    clienteTelefono = lead.telefono || 'No informado';
   }
-  const referencia = `Solicitud de presupuesto (Ref: C-${presupuesto.consulta.id.substring(0, 6)})`;
 
   const configNegocio = presupuesto.consulta.bot; 
   const datosDelNegocioDinamicos: DatosNegocio = {
@@ -49,7 +50,7 @@ export async function generarPdfDesdeBaseDeDatos(presupuestoId: number): Promise
     const rutaDelPdf = await generarPresupuestoFormal(
       presupuesto.id,
       clienteNombre,
-      referencia,
+      clienteTelefono,
       items,
       datosDelNegocioDinamicos,
       presupuesto.validezDias
