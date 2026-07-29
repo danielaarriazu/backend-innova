@@ -125,7 +125,7 @@ export const toggleBotStatus = async (
     const { slug } = req.params;
     const { activo } = req.body;
 
-    const botActualizado = await botService.cambiarEstadoBot(slug, activo);
+    const botActualizado = await botService.cambiarEstadoBot(req.usuario!.id, slug, activo);
 
     res.status(200).json({
       success: true,
