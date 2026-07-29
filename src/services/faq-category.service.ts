@@ -10,11 +10,23 @@ const obtenerBotDeUsuario = async (usuarioId: string) => {
 
 export const crearCategoria = async (data: CreateCategoryInput) => {
   const bot = await obtenerBotDeUsuario(data.usuarioId);
+  const nombreLimpio = data.nombre.trim();
+
+  const existeCategoria = await prisma.categoriaFAQ.findFirst({
+    where: { 
+      botId: bot.id, 
+      nombre: nombreLimpio 
+    }
+  });
+
+  if (existeCategoria) {
+    throw new Error('CATEGORY_ALREADY_EXISTS');
+  }
 
   const nuevaCategoria = await prisma.categoriaFAQ.create({
     data: {
       botId: bot.id,
-      nombre: data.nombre.trim()
+      nombre: nombreLimpio
     }
   });
 
@@ -40,6 +52,7 @@ export const obtenerCategorias = async (usuarioId: string) => {
 
 export const actualizarCategoria = async (data: UpdateCategoryInput) => {
   const bot = await obtenerBotDeUsuario(data.usuarioId);
+  const nombreLimpio = data.nombre.trim();
 
   const categoriaExistente = await prisma.categoriaFAQ.findFirst({
     where: { id: data.categoriaId, botId: bot.id }
@@ -47,9 +60,21 @@ export const actualizarCategoria = async (data: UpdateCategoryInput) => {
 
   if (!categoriaExistente) throw new Error('CATEGORY_NOT_FOUND');
 
+  const nombreDuplicado = await prisma.categoriaFAQ.findFirst({
+    where: {
+      botId: bot.id,
+      nombre: nombreLimpio,
+      id: { not: data.categoriaId } 
+    }
+  });
+
+  if (nombreDuplicado) {
+    throw new Error('CATEGORY_ALREADY_EXISTS');
+  }
+
   const categoriaActualizada = await prisma.categoriaFAQ.update({
     where: { id: data.categoriaId },
-    data: { nombre: data.nombre.trim() }
+    data: { nombre: nombreLimpio }
   });
 
   await registrarActividad(
