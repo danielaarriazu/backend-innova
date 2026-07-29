@@ -117,6 +117,7 @@ export const actualizarEstado = async (data: UpdateConsultationStatusInput) => {
           },
           data: {
             estado: EstadoChat.BOT_ACTIVO, 
+            contexto: 'INICIO',
           },
         });
       } catch (error) {

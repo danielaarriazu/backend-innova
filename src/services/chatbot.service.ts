@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma';
 import { enviarEventosQueue } from './telemetry.service'; 
-import { TipoMensaje, RolEmisor, EstadoChat, EstadoConsulta } from '@prisma/client';
+import { TipoMensaje, RolEmisor, EstadoChat, EstadoConsulta, CerradaPor } from '@prisma/client';
 import { crearYEnviarPresupuesto } from './presupuesto.service';
 import { ChatbotPayload, DatosCliente } from '../types/chatbot.type';
 
@@ -188,13 +188,36 @@ export const procesarAccionBot = async (
         };
 
       case 'SOLICITAR_PRESUPUESTO':
-        const requiereCotizacion = datosCliente.items.some((item: any) => !item.precio || item.precio === 0);
-        return {
+       const itemsCliente = (datosCliente?.items || []) as Array<{ productoId: string; cantidad: number }>;
+        const productoIds = [...new Set(itemsCliente.map((item) => item.productoId))];
+ 
+        const productosReales = await prisma.producto.findMany({
+          where: { id: { in: productoIds }, botId, activo: true },
+        });
+ 
+        if (productosReales.length !== productoIds.length) {
+          return {
+            respuesta: "Uno o más productos del carrito ya no están disponibles. Volvé a revisar el catálogo.",
+            botones: [{ id: 'btn_catalogo', texto: 'Ver Catálogo', accion: 'MOSTRAR_CATALOGO' }],
+            requiereInput: false,
+            contexto: 'INICIO'
+          };
+        }
+ 
+        const productoPorIdSolicitud = new Map(productosReales.map((p) => [p.id, p]));
+        const requiereCotizacion = itemsCliente.some(
+          (item) => productoPorIdSolicitud.get(item.productoId)!.requiereCotizacion
+        );
+         const carritoValidado = itemsCliente.map((item) => ({
+          productoId: item.productoId,
+          cantidad: Number(item.cantidad) || 1,
+        }));
+         return {
           respuesta: "¡Excelente elección! Para poder armar tu presupuesto, por favor escribime tu *Nombre*.",
           botones: [],
           requiereInput: true,
           contexto: requiereCotizacion ? 'ESPERANDO_NOMBRE_COTIZACION' : 'ESPERANDO_NOMBRE_PRESUPUESTO',
-          datosAcumulados: { carrito: datosCliente.items } 
+          datosAcumulados: { carrito: carritoValidado } 
         };
 
       case 'DERIVAR_HUMANO':
@@ -255,28 +278,38 @@ export const procesarAccionBot = async (
           }
           const nombreGuardado = datosCliente.datosAcumulados?.nombre || 'Cliente';
           const flujoDestino = contextoActual.split('ESPERANDO_TELEFONO_')[1];
-          const carrito = datosCliente.datosAcumulados?.carrito || [];
+          const carrito = (datosCliente.datosAcumulados?.carrito || []) as Array<{ productoId: string; cantidad: number }>;
 
           let descripcionConsulta = '';
           let requiereCotizacionManual = false;
           let total = 0;
+          let productoPorId = new Map<string, { nombre: string; precio: any; requiereCotizacion: boolean }>();
 
           if (flujoDestino === 'DERIVAR_HUMANO') {
             descripcionConsulta = 'El cliente solicita atención personalizada y derivación a un representante.';
           } else {
-            requiereCotizacionManual = carrito.some((item: any) => 
-              item.requiereCotizacion === true || Number(item.precio) === 0
+             const productoIds = [...new Set(carrito.map((item) => item.productoId))];
+             const productosReales = await prisma.producto.findMany({
+              where: { id: { in: productoIds }, botId, activo: true },
+            });
+            productoPorId = new Map(productosReales.map((p) => [p.id, p]));
+ 
+            requiereCotizacionManual = carrito.some(
+              (item: any) => productoPorId.get(item.productoId)?.requiereCotizacion ?? true
             );
-
+ 
             descripcionConsulta = `Detalle de los productos solicitados:\n\n`;
 
-            carrito.forEach((item: any) => {
-              if (item.requiereCotizacion === true || Number(item.precio) === 0) {
-                descripcionConsulta += `• ${item.cantidad}x ${item.nombre || 'Producto'} (A cotizar)\n`;
+            carrito.forEach((item) => {
+               const producto = productoPorId.get(item.productoId);
+              const nombre = producto?.nombre ?? 'Producto ya no disponible';
+              if (!producto || producto.requiereCotizacion) {
+                descripcionConsulta += `• ${item.cantidad}x ${nombre} (A cotizar)\n`;
               } else {
-                const subtotal = item.cantidad * Number(item.precio);
+                const precio = Number(producto.precio);
+                const subtotal = item.cantidad * precio;
                 total += subtotal;
-                descripcionConsulta += `• ${item.cantidad}x ${item.nombre || 'Producto'} ($${item.precio} c/u) = $${subtotal}\n`;
+                descripcionConsulta += `• ${item.cantidad}x ${nombre} ($${precio} c/u) = $${subtotal}\n`;
               }
             });
 
@@ -344,7 +377,9 @@ export const procesarAccionBot = async (
                   asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
                   descripcion: descripcionConsulta,
                   derivada: esDerivacion, 
-                  estado: esDerivacion ? EstadoConsulta.EN_PROCESO : EstadoConsulta.RESUELTA   
+                  estado: esDerivacion ? EstadoConsulta.EN_PROCESO : EstadoConsulta.CERRADA,
+                  cerradaPor: esDerivacion ? null : CerradaPor.BOT,
+                  fechaCierre: esDerivacion ? null : new Date(),  
                 }
               });
               
@@ -375,11 +410,14 @@ export const procesarAccionBot = async (
               let rutaPdfGenerado = null;
 
               try {
-                const itemsPresupuesto = carrito.map((item: any) => ({
-                  nombre: item.nombre || 'Producto sin nombre',
-                  cantidad: Number(item.cantidad) || 1,
-                  precioUnitario: Number(item.precio) || 0
-                }));
+                const itemsPresupuesto = carrito.map((item: any) => {
+                  const producto = productoPorId.get(item.productoId);
+                  return {
+                    nombre: producto?.nombre ?? 'Producto ya no disponible',
+                    cantidad: Number(item.cantidad) || 1,
+                    precioUnitario: producto && !producto.requiereCotizacion ? Number(producto.precio) : 0,
+                  };
+                });
 
                 const presupuestoCreado = await crearYEnviarPresupuesto(
                   consultaActiva.id, 
