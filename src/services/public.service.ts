@@ -76,6 +76,16 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
     // Es la primera vez que entra al chat
     finalSessionId = uuidv4();
   }
+  if (!hasHistory) {
+    await prisma.sesionChat.create({
+      data: {
+        botId: bot.id,
+        sessionId: finalSessionId,
+        estado: 'BOT_ACTIVO',
+        contexto: 'INICIO'
+      }
+    });
+  }
   return {
     sessionId: finalSessionId,
     hasHistory,

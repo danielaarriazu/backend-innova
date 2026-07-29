@@ -305,7 +305,7 @@ export const procesarAccionBot = async (
                 contexto: 'INICIO'
               };
             }
-            const esDerivacion = (flujoDestino === 'DERIVAR_HUMANO') || requiereCotizacionManual;
+            const esDerivacion = (flujoDestino === 'DERIVAR_HUMANO') || (flujoDestino === 'COTIZACION') || requiereCotizacionManual;
             
             const esIngresoDeDato = accion === 'ENVIAR_DATOS' || contextoActual?.startsWith('ESPERANDO_');
             const tipoMensajeCliente = esIngresoDeDato ? 'TEXTO' : 'ACCION';
