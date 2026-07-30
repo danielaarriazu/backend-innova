@@ -114,7 +114,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
         precio: Number(producto.precio),
         precioConsultar: producto.requiereCotizacion,
         imagen: producto.urlImagen,
-        disponible: producto.activo && producto.stock !== 0,
+        disponible: producto.activo,
       })),
     },
     // Campos planos conservados para clientes que consumían el contrato anterior.
