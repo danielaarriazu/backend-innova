@@ -145,7 +145,7 @@ export const procesarAccionBot = async (
 
       case 'MOSTRAR_FAQS':
         const faqs = await prisma.faq.findMany({
-          where: { botId, activa: true },
+          where: { botId },
           include: { categoria: true }
         });
         const textoFaqs = faqs.map(f => `*${f.categoria.nombre}:* ${f.pregunta}\nR: ${f.respuesta}`).join('\n\n');

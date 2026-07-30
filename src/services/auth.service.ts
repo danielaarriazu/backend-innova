@@ -1,7 +1,6 @@
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { normalizeFaqQuestion } from '../utils/normalizeFaqQuestion';
 import { registrarActividad } from './activity.service';
 import { RegisterInput, LoginInput, AuthResult } from '../types/auth.types';
 import { EstadoUsuario } from '@prisma/client';
@@ -25,8 +24,7 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
   if (existingUser) throw new Error('EMAIL_ALREADY_REGISTERED');
 
   const hashedPassword = await bcryptjs.hash(data.password, 10);
-  const crearUsuarioConBot = async () => prisma.$transaction(async (tx) => {
-  const usuarioCreado = await tx.usuario.create({
+  const newUser = await prisma.usuario.create({
     data: {
       nombre: data.nombre,
       email: data.email,
@@ -37,109 +35,11 @@ export const registrarUsuario = async (data: RegisterInput): Promise<{ id: strin
         create: {
           activo: false,
           mensajeBienvenida: '¡Hola! ¿En qué te puedo ayudar hoy?',
-          respuestaDerivacion: ' Aguarda un momento, te estoy comunicando con un asesor humano para que te atienda personalmente.'
-        }
-      }
+          respuestaDerivacion: ' Aguarda un momento, te estoy comunicando con un asesor humano para que te atienda personalmente.',
+        },
+      },
     },
-    include: { bot: true }
   });
-  if (!usuarioCreado.bot) throw new Error('BOT_CREATION_FAILED');
-  
-  const botId = usuarioCreado.bot.id;
-  
-  await tx.categoriaFAQ.create({
-      data: {
-        botId,
-        nombre: "Precios y pagos",
-        faqs: {
-          create: [{
-            botId,
-            pregunta: "¿Cuáles son los medios de pago?",
-            preguntaNormalizada: normalizeFaqQuestion("¿Cuáles son los medios de pago?"),
-            respuesta: "Aceptamos transferencias bancarias, tarjetas de crédito y débito a través de MercadoPago.",
-            activa: false,
-          }]
-        }
-      }
-    });
- 
-    await tx.categoriaFAQ.create({
-      data: {
-        botId,
-        nombre: "Productos y stock",
-        faqs: {
-          create: [{
-            botId,
-            pregunta: "¿Tienen stock disponible?",
-            preguntaNormalizada: normalizeFaqQuestion("¿Tienen stock disponible?"),
-            respuesta: "Si, contamos con stock disponible para todos nuestros productos.",
-            activa: false,
-          }]
-        }
-      }
-    });
- 
-    await tx.categoriaFAQ.create({
-      data: {
-        botId,
-        nombre: "Envíos",
-        faqs: {
-          create: [{
-            botId,
-            pregunta: "¿Realizan envios?",
-            preguntaNormalizada: normalizeFaqQuestion("¿Realizan envios?"),
-            respuesta: "Si, hacen envíos a todo el país.",
-            activa: false,
-          }]
-        }
-      }
-    });
- 
-    await tx.categoriaFAQ.create({
-      data: {
-        botId,
-        nombre: "Atención y horarios",
-        faqs: {
-          create: [
-            {
-              botId,
-              pregunta: "¿Cuál es el horario de atención?",
-              preguntaNormalizada: normalizeFaqQuestion("¿Cuál es el horario de atención?"),
-              respuesta: "Atendemos de lunes a viernes de 9 AM a 6 PM.",
-              activa: false,
-            },
-            {
-              botId,
-              pregunta: "¿Aceptan cambios o devoluciones?",
-              preguntaNormalizada: normalizeFaqQuestion("¿Aceptan cambios o devoluciones?"),
-              respuesta: "Sí, aceptamos cambios y devoluciones dentro de los primeros 30 días de recibido Unicamente los dias Lunes.",
-              activa: false,
-            }
-          ]
-        }
-      }
-    });
- 
-    await tx.categoriaFAQ.create({
-      data: {
-        botId,
-        nombre: "Proceso de compra",
-        faqs: {
-          create: [{
-            botId,
-            pregunta: "¿Hacen precio por mayor?",
-            preguntaNormalizada: normalizeFaqQuestion("¿Hacen precio por mayor?"),
-            respuesta: "Si, ofrecemos precios especiales para compras por mayor.",
-            activa: false,
-          }]
-        }
-      }
-    });
-
-    return usuarioCreado;
-  }, { timeout: 20000 });
-
-  const newUser = await crearUsuarioConBot();
 
   return { id: newUser.id };
 };

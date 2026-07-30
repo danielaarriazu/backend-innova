@@ -106,3 +106,44 @@ export const deleteFAQ = async (req: Request, res: Response, next: NextFunction)
     next(error);
   }
 };
+
+export const getFAQSuggestions = (
+  _req: Request,
+  res: Response,
+): void => {
+  res.status(200).json({ success: true, data: faqService.obtenerSugerenciasFAQ() });
+};
+
+export const createFAQsFromSuggestions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const faqs = await faqService.crearFAQsDesdeSugerencias({
+      usuarioId: req.usuario!.id,
+      suggestionIds: req.body.suggestionIds,
+      ...getRequestMeta(req),
+    });
+
+    res.status(201).json({
+      success: true,
+      message: faqs.length > 0
+        ? 'Preguntas sugeridas agregadas con éxito.'
+        : 'Las preguntas seleccionadas ya existían.',
+      faqs,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'FAQ_SUGGESTION_NOT_FOUND') {
+        res.status(400).json({ success: false, error: 'Una o más sugerencias no pertenecen al catálogo oficial.' });
+        return;
+      }
+    }
+    next(error);
+  }
+};

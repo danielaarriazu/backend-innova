@@ -18,7 +18,6 @@ export const createFaqSchema = z.object({
     .min(1, 'La respuesta no puede estar vacía')
     .max(2000, 'La respuesta no puede superar los 2000 caracteres'),
 
-  activa: z.boolean().default(true),
 });
 
 export const updateFaqSchema = z.object({
@@ -38,7 +37,6 @@ export const updateFaqSchema = z.object({
     .max(2000, 'La respuesta no puede superar los 2000 caracteres')
     .optional(),
 
-  activa: z.boolean().optional(),
 }).refine(
   (data) => Object.keys(data).length > 0,
   { message: 'Debes enviar al menos un campo para actualizar' }
@@ -46,8 +44,6 @@ export const updateFaqSchema = z.object({
 
 export const getFaqsSchema = z.object({
   categoriaId: uuidField('categoriaId').optional(),
-  
-  activa: z.enum(['true', 'false'], { error: 'El valor debe ser "true" o "false"' }).optional(),
   
   buscar: z.string().trim().optional(), // Para un buscador por texto
 
@@ -67,6 +63,13 @@ export const getFaqsSchema = z.object({
 
 export const deleteFaqSchema = z.object({
   id: uuidField('ID de la FAQ'),
+});
+
+export const createFaqsFromSuggestionsSchema = z.object({
+  suggestionIds: z
+    .array(z.string().trim().min(1, 'El ID de sugerencia no puede estar vacío'))
+    .min(1, 'Seleccioná al menos una pregunta sugerida')
+    .max(6, 'No se pueden seleccionar más de seis sugerencias'),
 });
 
 

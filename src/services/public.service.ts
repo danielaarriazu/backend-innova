@@ -28,12 +28,16 @@ export const obtenerFAQsPublicas = async (slug: string) => {
   }
 
   const faqs = await prisma.faq.findMany({
-    where: { 
-      botId: bot.id, 
-      activa: true 
-    },
-    include: { 
-      categoria: { select: { id: true, nombre: true } } 
+    where: { botId: bot.id },
+    select: {
+      id: true,
+      botId: true,
+      categoriaId: true,
+      pregunta: true,
+      respuesta: true,
+      fechaCreacion: true,
+      fechaModificacion: true,
+      categoria: { select: { id: true, nombre: true } },
     },
     orderBy: { pregunta: 'asc' }, 
   });

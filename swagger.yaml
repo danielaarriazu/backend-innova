@@ -172,9 +172,6 @@ components:
         respuesta:
           type: string
           example: "Sí, enviamos a todo el país mediante OCA y Andreani. El costo varía según la zona."
-        activa:
-          type: boolean
-          example: true
         fechaCreacion:
           type: string
           format: date-time
@@ -348,14 +345,12 @@ paths:
       description: |
         Crea un usuario con rol `EMPRENDEDOR`.
  
-        **Lo que hace internamente (transacción ACID):**
+        **Lo que hace internamente:**
         1. Verifica que el email no esté registrado
         2. Hashea la contraseña con bcryptjs (costo 10)
         3. Crea el `Usuario`
         4. Crea la `ConfiguracionBot` (1:1 con el usuario)
-        5. Crea 5 categorías de FAQ con preguntas de ejemplo
- 
-        Si cualquier paso falla, toda la operación se revierte.
+        Las FAQ sugeridas se consultan y agregan posteriormente desde el módulo FAQ.
  
         **Rate limit:** 10 requests cada 15 minutos por IP.
       requestBody:
@@ -1217,6 +1212,81 @@ paths:
   # ==========================================================================
   # FAQs
   # ==========================================================================
+  /api/faqs/suggestions:
+    get:
+      tags: [FAQs]
+      summary: Obtener el catálogo oficial de FAQ sugeridas
+      description: Devuelve las seis plantillas administradas por el backend.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Catálogo de sugerencias
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, pregunta, respuesta, categoria]
+                      properties:
+                        id:
+                          type: string
+                          example: "medios-pago"
+                        pregunta:
+                          type: string
+                          example: "¿Qué medios de pago aceptan?"
+                        respuesta:
+                          type: string
+                        categoria:
+                          type: object
+                          properties:
+                            nombre:
+                              type: string
+                              example: "Precios y pagos"
+        '401':
+          description: No autenticado
+
+  /api/faqs/from-suggestions:
+    post:
+      tags: [FAQs]
+      summary: Crear FAQ reales desde sugerencias oficiales
+      description: |
+        Recibe únicamente IDs del catálogo. Crea o reutiliza las categorías del bot
+        autenticado y omite de forma idempotente las preguntas que ya existen.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [suggestionIds]
+              properties:
+                suggestionIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 6
+                  uniqueItems: true
+                  items:
+                    type: string
+                  example: ["medios-pago", "envios"]
+      responses:
+        '201':
+          description: FAQ creadas; puede devolver una lista vacía si ya existían
+        '400':
+          description: Selección vacía o ID inexistente
+        '401':
+          description: No autenticado
+        '404':
+          description: Configuración de bot no encontrada
+
   /api/faqs:
     post:
       tags: [FAQs]
@@ -1252,11 +1322,6 @@ paths:
                   minLength: 1
                   maxLength: 2000
                   example: "Sí, enviamos a todo el país mediante OCA y Andreani. El costo varía según la zona y lo calculamos juntos al momento de la compra."
-                activa:
-                  type: boolean
-                  default: true
-                  description: Si es `false`, la FAQ no se mostrará en el chatbot
-                  example: true
             examples:
               faq_envios:
                 summary: FAQ de envíos
@@ -1264,14 +1329,12 @@ paths:
                   categoriaId: "f1e2d3c4-b5a6-7890-abcd-ef0123456789"
                   pregunta: "¿Realizan envíos al interior del país?"
                   respuesta: "Sí, enviamos a todo el país mediante OCA y Andreani. El costo varía según la zona."
-                  activa: true
               faq_pagos:
                 summary: FAQ de medios de pago
                 value:
                   categoriaId: "e2d3c4b5-a6f7-8901-bcde-f01234567890"
                   pregunta: "¿Qué medios de pago aceptan?"
                   respuesta: "Aceptamos transferencia bancaria, Mercado Pago (tarjetas, Mercado Crédito) y efectivo en punto de entrega."
-                  activa: true
       responses:
         '201':
           description: FAQ creada
@@ -1286,7 +1349,6 @@ paths:
                   categoriaId: "f1e2d3c4-b5a6-7890-abcd-ef0123456789"
                   pregunta: "¿Realizan envíos al interior del país?"
                   respuesta: "Sí, enviamos a todo el país mediante OCA y Andreani."
-                  activa: true
                   fechaCreacion: "2026-07-02T12:00:00.000Z"
                   fechaModificacion: "2026-07-02T12:00:00.000Z"
         '400':
@@ -1314,7 +1376,7 @@ paths:
       description: |
         Devuelve las FAQs del bot del usuario autenticado.
  
-        Soporta filtros combinables: por categoría, por estado (activa/inactiva) y búsqueda de texto.
+        Soporta filtros combinables por categoría y búsqueda de texto.
  
         La paginación es obligatoria (con defaults de page=1 y limit=10).
       security:
@@ -1345,13 +1407,6 @@ paths:
           description: Filtrar por categoría específica
           example: "f1e2d3c4-b5a6-7890-abcd-ef0123456789"
         - in: query
-          name: activa
-          schema:
-            type: string
-            enum: ["true", "false"]
-          description: Filtrar por estado de activación
-          example: "true"
-        - in: query
           name: buscar
           schema:
             type: string
@@ -1378,7 +1433,6 @@ paths:
                       categoriaId: "f1e2d3c4-b5a6-7890-abcd-ef0123456789"
                       pregunta: "¿Realizan envíos al interior del país?"
                       respuesta: "Sí, enviamos a todo el país mediante OCA y Andreani."
-                      activa: true
                       fechaCreacion: "2026-07-02T12:00:00.000Z"
                       fechaModificacion: "2026-07-02T12:00:00.000Z"
                       categoria:
@@ -1435,17 +1489,11 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 2000
-                activa:
-                  type: boolean
             examples:
               actualizar_respuesta:
                 summary: Solo actualizar la respuesta
                 value:
                   respuesta: "Sí, enviamos a todo el país mediante OCA, Andreani y correo argentino. El costo varía según destino."
-              desactivar:
-                summary: Desactivar una FAQ sin eliminarla
-                value:
-                  activa: false
               mover_categoria:
                 summary: Mover a otra categoría y actualizar pregunta
                 value:
@@ -1463,7 +1511,6 @@ paths:
                   id: "d4e5f6a7-b8c9-0123-abcd-456789012345"
                   pregunta: "¿Realizan envíos al interior del país?"
                   respuesta: "Sí, enviamos a todo el país mediante OCA, Andreani y correo argentino."
-                  activa: true
         '400':
           description: ID inválido o body vacío
         '401':
@@ -2176,7 +2223,7 @@ paths:
     get:
       tags: [API Pública]
       summary: Obtener FAQs públicas del bot
-      description: Devuelve las preguntas frecuentes activas del bot, ordenadas alfabéticamente e incluyendo los datos de su categoría.
+      description: Devuelve todas las preguntas frecuentes existentes del bot, ordenadas alfabéticamente e incluyendo los datos de su categoría.
       parameters:
         - in: path
           name: slug
@@ -2186,7 +2233,7 @@ paths:
             minLength: 1
       responses:
         '200':
-          description: Lista de FAQs activas obtenida exitosamente.
+          description: Lista de FAQs obtenida exitosamente.
         '400':
           description: El slug proporcionado está vacío.
         '404':

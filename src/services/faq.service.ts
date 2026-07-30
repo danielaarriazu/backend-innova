@@ -1,8 +1,31 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
-import { CreateFaqInput, UpdateFaqInput, DeleteFaqInput, GetFaqsInput } from '../types/faq.types';
+import {
+  CreateFaqInput,
+  CreateFaqsFromSuggestionsInput,
+  DeleteFaqInput,
+  GetFaqsInput,
+  UpdateFaqInput,
+} from '../types/faq.types';
 import { normalizeFaqQuestion } from '../utils/normalizeFaqQuestion';
+import {
+  FAQ_SUGGESTIONS,
+  FAQ_SUGGESTION_LEGACY_QUESTIONS,
+  FaqSuggestionId,
+  getFaqSuggestionsByIds,
+} from '../data/faqSuggestions';
+
+const faqSelect = {
+  id: true,
+  botId: true,
+  categoriaId: true,
+  pregunta: true,
+  respuesta: true,
+  fechaCreacion: true,
+  fechaModificacion: true,
+  categoria: { select: { id: true, nombre: true } },
+} satisfies Prisma.FaqSelect;
  
 const obtenerBotDeUsuario = async (usuarioId: string) => {
   const bot = await prisma.configuracionBot.findUnique({ where: { usuarioId } });
@@ -50,9 +73,10 @@ export const crearFAQ = async (data: CreateFaqInput) => {
       pregunta,
       preguntaNormalizada,
       respuesta: data.respuesta.trim(),
-      activa: data.activa !== undefined ? data.activa : true,
-      
-    }
+      // Campo legado: todas las FAQ nuevas están disponibles para el chatbot.
+      activa: true,
+    },
+    select: faqSelect,
   }).catch(convertirErrorDeUnicidad);
  
   await registrarActividad(
@@ -69,12 +93,11 @@ export const crearFAQ = async (data: CreateFaqInput) => {
 export const obtenerFAQs = async (usuarioId: string, filtros: GetFaqsInput) => {
   const bot = await obtenerBotDeUsuario(usuarioId);
  
-  const { categoriaId, activa, buscar, page, limit } = filtros;
+  const { categoriaId, buscar, page, limit } = filtros;
 
   const where = {
     botId: bot.id,
     ...(categoriaId ? { categoriaId } : {}),
-    ...(activa !== undefined ? { activa: activa === 'true' } : {}),
     ...(buscar && buscar.trim().length > 0
       ? {
           OR: [
@@ -90,7 +113,7 @@ export const obtenerFAQs = async (usuarioId: string, filtros: GetFaqsInput) => {
   const [faqs, total] = await prisma.$transaction([
     prisma.faq.findMany({
       where,
-      include: { categoria: { select: { id: true, nombre: true } } },
+      select: faqSelect,
       orderBy: { fechaCreacion: 'desc' },
       skip,
       take: limit,
@@ -136,8 +159,10 @@ export const actualizarFAQ = async (data: UpdateFaqInput) => {
       pregunta,
       preguntaNormalizada,
       respuesta: data.respuesta ? data.respuesta.trim() : faqExistente.respuesta,
-      activa: data.activa !== undefined ? data.activa : faqExistente.activa,
-    }
+      // Al editar una FAQ legada también queda disponible para el chatbot.
+      activa: true,
+    },
+    select: faqSelect,
   }).catch(convertirErrorDeUnicidad);
 
   await registrarActividad(
@@ -169,4 +194,94 @@ export const eliminarFAQ = async (data: DeleteFaqInput) => {
     data.ip,
     data.dispositivo
   );
+};
+
+export const obtenerSugerenciasFAQ = () => FAQ_SUGGESTIONS.map((suggestion) => ({
+  id: suggestion.id,
+  pregunta: suggestion.pregunta,
+  respuesta: suggestion.respuesta,
+  categoria: { nombre: suggestion.categoria },
+}));
+
+const isRetryableTransactionError = (error: unknown) =>
+  error instanceof Prisma.PrismaClientKnownRequestError
+  && (error.code === 'P2002' || error.code === 'P2034');
+
+export const crearFAQsDesdeSugerencias = async (data: CreateFaqsFromSuggestionsInput) => {
+  const sugerencias = getFaqSuggestionsByIds(data.suggestionIds);
+  if (!sugerencias) throw new Error('FAQ_SUGGESTION_NOT_FOUND');
+
+  const crear = async () => prisma.$transaction(async (tx) => {
+    const bot = await tx.configuracionBot.findUnique({ where: { usuarioId: data.usuarioId } });
+    if (!bot) throw new Error('BOT_NOT_FOUND');
+
+    const existentes = await tx.faq.findMany({
+      where: { botId: bot.id },
+      select: { pregunta: true, preguntaNormalizada: true },
+    });
+    const clavesExistentes = new Set(
+      existentes
+        .map((faq) => faq.preguntaNormalizada ?? normalizeFaqQuestion(faq.pregunta))
+    );
+    const creadas = [];
+
+    for (const suggestion of sugerencias) {
+      const plantilla = suggestion;
+      const preguntaNormalizada = normalizeFaqQuestion(plantilla.pregunta);
+      const preguntasEquivalentes = [
+        plantilla.pregunta,
+        ...(FAQ_SUGGESTION_LEGACY_QUESTIONS[plantilla.id as FaqSuggestionId] ?? []),
+      ].map(normalizeFaqQuestion);
+      if (preguntasEquivalentes.some((clave) => clavesExistentes.has(clave))) continue;
+
+      let categoria = await tx.categoriaFAQ.findFirst({
+        where: {
+          botId: bot.id,
+          nombre: { equals: plantilla.categoria, mode: 'insensitive' },
+        },
+      });
+
+      if (!categoria) {
+        categoria = await tx.categoriaFAQ.create({
+          data: { botId: bot.id, nombre: plantilla.categoria },
+        });
+      }
+
+      const faq = await tx.faq.create({
+        data: {
+          botId: bot.id,
+          categoriaId: categoria.id,
+          pregunta: plantilla.pregunta,
+          preguntaNormalizada,
+          respuesta: plantilla.respuesta,
+          activa: true,
+        },
+        select: faqSelect,
+      });
+      creadas.push(faq);
+      clavesExistentes.add(preguntaNormalizada);
+
+      await tx.registroActividad.create({
+        data: {
+          usuarioId: data.usuarioId,
+          accion: 'CREACION_FAQ',
+          detalle: `El usuario creó la FAQ sugerida: "${faq.pregunta}"`,
+          ip: data.ip,
+          dispositivo: data.dispositivo,
+        },
+      });
+    }
+
+    return creadas;
+  }, {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    timeout: 20000,
+  });
+
+  try {
+    return await crear();
+  } catch (error) {
+    if (isRetryableTransactionError(error)) return crear();
+    throw error;
+  }
 };
