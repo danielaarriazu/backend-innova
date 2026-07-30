@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
+import { resolveChatSession } from './chat-session-init.service';
 
 export const obtenerProductosPublicos = async (slug: string) => {
   const bot = await prisma.configuracionBot.findUnique({
@@ -60,36 +60,36 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
     throw new Error('BOT_NOT_FOUND');
   }
 
-  let hasHistory = false;
-  let finalSessionId = sessionId;
-  
-  if (finalSessionId) {
-    // Buscamos si este cliente ya tenía una conversación previa
-    const consultaPrevia = await prisma.consulta.findFirst({
-      where: {
-        sessionId: finalSessionId,
-        botId: bot.id 
-      }
-    });
-
-    if (consultaPrevia) {
-      hasHistory = true; 
-      finalSessionId = uuidv4(); 
-    }
-  } else {
-    // Es la primera vez que entra al chat
-    finalSessionId = uuidv4();
-  }
-  if (!hasHistory) {
-    await prisma.sesionChat.create({
-      data: {
-        botId: bot.id,
-        sessionId: finalSessionId,
-        estado: 'BOT_ACTIVO',
-        contexto: 'INICIO'
-      }
-    });
-  }
+  const { sessionId: finalSessionId, hasHistory } = await resolveChatSession({
+    botId: bot.id,
+    requestedSessionId: sessionId,
+    repository: {
+      hasPreviousConsultation: async (botId, requestedSessionId) => {
+        const consultaPrevia = await prisma.consulta.findFirst({
+          where: { botId, sessionId: requestedSessionId },
+          select: { id: true },
+        });
+        return Boolean(consultaPrevia);
+      },
+      ensureSession: async (botId, sessionIdToEnsure) => {
+        await prisma.sesionChat.upsert({
+          where: {
+            botId_sessionId: {
+              botId,
+              sessionId: sessionIdToEnsure,
+            },
+          },
+          update: {},
+          create: {
+            botId,
+            sessionId: sessionIdToEnsure,
+            estado: 'BOT_ACTIVO',
+            contexto: 'INICIO',
+          },
+        });
+      },
+    },
+  });
   return {
     sessionId: finalSessionId,
     hasHistory,
