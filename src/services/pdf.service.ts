@@ -80,6 +80,8 @@ export async function generarPresupuestoFormal(
 
     // --- 5. FILAS DE PRODUCTOS ---
     let totalPresupuesto = 0;
+    let requireCotizacion = false;
+
     doc.font('Helvetica').fontSize(10).fillColor('#333333');
 
     items.forEach((item) => {
@@ -90,20 +92,34 @@ export async function generarPresupuestoFormal(
         doc.font('Helvetica').fontSize(10).fillColor('#333333');
       }
 
-      const subtotal = item.cantidad * item.precioUnitario;
-      totalPresupuesto += subtotal;
-
       const formatCurrency = (val: number) => `$${val.toLocaleString('es-AR', { minimumFractionDigits: 0 })}`;
 
-      doc.text(item.nombre, 40, yPosition, { width: 270 });
+      let textoNombre = item.nombre;
+      let textoPrecio= '';
+      let textoSubtotal = '';
+
+      if (item.precioUnitario === 0) {
+        requireCotizacion = true;
+        textoNombre = `${item.nombre} *`;
+        textoPrecio = 'A cotizar';
+        textoSubtotal = 'A cotizar';
+      } else {
+        const subtotal = item.cantidad * item.precioUnitario;
+        totalPresupuesto += subtotal;
+        textoPrecio = formatCurrency(item.precioUnitario);
+        textoSubtotal = formatCurrency(subtotal);
+      }
+
+      doc.text(textoNombre, 40, yPosition, { width: 270 });
       doc.text(item.cantidad.toString(), 320, yPosition, { width: 40, align: 'center' });
-      doc.text(formatCurrency(item.precioUnitario), 380, yPosition, { width: 80, align: 'right' });
-      doc.text(formatCurrency(subtotal), 475, yPosition, { width: 80, align: 'right' });
+      doc.text(textoPrecio, 380, yPosition, { width: 80, align: 'right' });
+      doc.text(textoSubtotal, 475, yPosition, { width: 80, align: 'right' });
 
       yPosition += 25; 
     });
 
     // --- 6. CAJA DE ADVERTENCIA (AMARILLA) ---
+    if (requireCotizacion) {
     yPosition += 10;
     doc.roundedRect(40, yPosition, 515, 45, 8).fill('#FFF9E6');
     
@@ -112,26 +128,54 @@ export async function generarPresupuestoFormal(
     
     doc.fillColor('#B38600').font('Helvetica').fontSize(9);
     doc.text(
-      'Los ítems marcados como "A presupuestar" requieren una evaluación previa. Te enviaremos una propuesta personalizada.', 
+      'Los ítems marcados con un asterisco requieren una evaluación previa. Una vez realizada, te enviaremos una cotizacion personalizada.', 
       80, 
       yPosition + 18, 
       { width: 435, align: 'center' }
     );
     yPosition += 75;
+  } else {
+    yPosition += 10;
+  }
 
     // --- 7. TOTALIZADOR ---
     doc.moveTo(40, yPosition).lineTo(555, yPosition).lineWidth(2).strokeColor('#2A3441').stroke();
     yPosition += 20;
 
+    let etiquetaIzquierda = 'Total estimado';
+    let textoMontoDerecha = '';
+    let mostrarAclaracionMixta = false;
+
+    if (requireCotizacion && totalPresupuesto === 0) {
+      textoMontoDerecha = 'A cotizar';
+    } else if (requireCotizacion && totalPresupuesto > 0) {
+      etiquetaIzquierda = 'Subtotal parcial';
+      textoMontoDerecha = `$${totalPresupuesto.toLocaleString('es-AR', { minimumFractionDigits: 0 })}`;
+      mostrarAclaracionMixta = true;
+    } else {
+      textoMontoDerecha = `$${totalPresupuesto.toLocaleString('es-AR', { minimumFractionDigits: 0 })}`;
+    }
+
     doc.fillColor('#2A3441').font('Helvetica-Bold').fontSize(14);
-    doc.text('Total estimado', 40, yPosition);
-    
+    doc.text(etiquetaIzquierda, 40, yPosition);
+
     doc.fillColor('#13A8A2').text(
-      `$${totalPresupuesto.toLocaleString('es-AR', { minimumFractionDigits: 0 })}`, 
+      textoMontoDerecha,
       355, 
       yPosition, 
       { width: 200, align: 'right' }
     );
+
+    if (mostrarAclaracionMixta) {
+      yPosition += 18;
+      doc.fillColor('#666666').font('Helvetica').fontSize(9);
+      doc.text(
+        ' * El subtotal parcial no incluye los productos a cotizar, cuyos precios finales se determinarán tras la evaluación.',
+        40,
+        yPosition,
+        { width: 515, align: 'center' }
+      );
+    }
 
     // --- 8. PIE DE PÁGINA CENTRADO PERFECTAMENTE ---
     const footerY = 700; 
