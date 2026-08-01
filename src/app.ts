@@ -22,6 +22,8 @@ import chatbotRoutes from './routes/chatbot.routes';
 import consultationRoutes from './routes/consultation.routes';
 import mensajeRoutes from './routes/mensaje.routes';
 import presupuestoRoutes from './routes/presupuesto.routes';
+import metricasRoutes from './routes/metricas.routes';
+
 
 const app = express();
 
@@ -86,6 +88,7 @@ app.use('/api/chatbot', apiLimiter, chatbotRoutes);
 app.use('/api/consultations', apiLimiter, consultationRoutes);
 app.use('/api/mensajes', apiLimiter, mensajeRoutes);
 app.use('/api/presupuestos', apiLimiter, presupuestoRoutes);
+app.use('/api/metricas', apiLimiter, metricasRoutes);
 app.use(errorHandler);
 
 export default app;
