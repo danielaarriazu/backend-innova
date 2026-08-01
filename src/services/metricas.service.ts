@@ -59,8 +59,9 @@ export async function obtenerEstadisticasMetricas(usuarioId: string) {
     
     prisma.presupuesto.groupBy({
       by: ['estado'],
-      _count: { estado: true },
-      where: { consulta: { botId } }
+      _count: { _all: true },
+      where: { consulta: { botId } },
+      orderBy: { estado: 'asc' }
     }),
 
     prisma.consulta.findMany({
@@ -125,7 +126,7 @@ export async function obtenerEstadisticasMetricas(usuarioId: string) {
     })),
     estadoPresupuestos: presupuestosPorEstado.map(p => ({
       estado: p.estado.charAt(0) + p.estado.slice(1).toLowerCase(), 
-      cantidad: p._count.estado
+      cantidad: (p._count as any)._all ?? 0
     }))
   };
 }
