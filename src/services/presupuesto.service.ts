@@ -108,14 +108,21 @@ export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPre
 
   const estadoInicial = requiereCotizacion ? 'PENDIENTE' : 'ENVIADO';
   
+  const totalCalculado = items.reduce((suma, item) => {
+    const precio= item.precioUnitario || 0;
+    const cantidad = item.cantidad || 1;
+    return suma + precio * cantidad;
+  }, 0);
+
   const nuevoPresupuesto = await prisma.presupuesto.create({
     data: {
       consultaId: consultaId, 
       estado: estadoInicial, 
       detalle: items as unknown as Prisma.InputJsonArray,
+      total: totalCalculado,
       validezDias: diasValidez,
       fechaVencimiento: fechaVencimiento,
-      origen: 'CHATBOT'
+      origen: 'CHATBOT'      
     }
   });
 
@@ -129,10 +136,15 @@ export async function cotizarYActualizarPresupuesto(
   presupuestoId: number, 
   itemsCotizados: ItemPresupuesto[]
 ): Promise<string> {
+  const nuevoTotalCalculado = itemsCotizados.reduce((suma, item) => {
+    return suma + item.cantidad * item.precioUnitario;
+  }, 0);
+
   await prisma.presupuesto.update({
     where: { id: presupuestoId },
     data: {
       detalle: itemsCotizados as unknown as Prisma.InputJsonArray,
+      total: nuevoTotalCalculado,
       estado: 'ENVIADO',
       validezDias: diasValidez,
       fechaVencimiento: fechaVencimiento,
