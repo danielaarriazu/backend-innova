@@ -30,9 +30,15 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
 
     res.status(201).json({ success: true, message: 'Producto creado con éxito.', producto });
   } catch (error: unknown) {
-    if (error instanceof Error && error.message === 'BOT_NOT_FOUND') {
-      res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
-      return;
+    if (error instanceof Error) {
+      if (error.message === 'BOT_NOT_FOUND') {
+        res.status(404).json({ success: false, error: 'Configuración de bot no encontrada.' });
+        return;
+      }
+      if (error.message === 'PRODUCT_ALREADY_EXISTS') {
+        res.status(409).json({ success: false, error: 'Ya existe un producto con este nombre en tu catálogo.' });
+        return;
+      }
     }
     next(error);
   }
