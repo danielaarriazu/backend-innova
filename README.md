@@ -1,140 +1,185 @@
-# Chatbot InnovaLab - Backend
+# Chatbot InnovaLab — Backend
 
-Backend del MVP de la plataforma de chatbot para PyMEs. Permite a emprendedores configurar un asistente virtual con catálogo de productos, preguntas frecuentes y analítica de comportamiento de usuarios.
- 
+Backend del MVP de InnovaLab, una plataforma multi-tenant que le permite a un emprendedor (PyME) configurar un chatbot para su negocio: catálogo de productos, preguntas frecuentes, mensaje de bienvenida y horarios, con derivación a un humano o generación de presupuestos/cotizaciones cuando el bot no puede resolver algo por sí solo.
+
+> El motor del bot (`src/services/chatbot.service.ts`) es una **máquina de estados determinística** basada en acciones/botones fijos y en el contexto guardado por sesión — no usa un LLM ni IA generativa.
+
 ## Tecnologías utilizadas
 
-- **Runtime:** Node.js (v24+)
-- **Lenguaje:** TypeScript 5
+- **Runtime:** Node.js (v20+, desarrollado con v24)
+- **Lenguaje:** TypeScript 5 (`strict` mode)
 - **Framework Web:** Express 4
 - **ORM:** Prisma ORM (v5)
-- **Base de Datos:** PostgreSQL (Neon)
-- **Autenticación:** JWT & Bcrypts 
-- **Mensajería / Cola (Message Broker):** Upstash Redis (REST API)
-- **Base de Datos Analítica (OLAP):** MotherDuck (DuckDB Node API v1.5.2-r.1)
-- **Almacenamiento de imágenes:** Cloudinary
+- **Base de Datos:** PostgreSQL (Neon) — con conexión *pooled* (`DATABASE_URL`) para runtime y conexión directa (`DIRECT_URL`) para migraciones
+- **Autenticación:** JWT + bcryptjs, con verificación del estado de la cuenta en cada request (no solo la firma del token)
+- **Mensajería / Cola:** Upstash Redis (REST API) — cola FIFO para telemetría
+- **Almacenamiento de imágenes y PDFs:** Cloudinary
+- **Generación de PDFs:** PDFKit (presupuestos/cotizaciones)
 - **Validación:** Zod v4
-- **Documentación:** Swagger / OpenAPI
-- **Despliegue:** Render (CI/CD)
+- **Documentación:** Swagger / OpenAPI 3.0 (`/api-docs`)
+- **Despliegue:** Render (Infra as Code vía `render.yaml`)
 
-Prerequisitos
+## Prerrequisitos
+
 Antes de comenzar, asegurate de tener lo siguiente:
 
-Node.js v24 o superior — Descargar
-npm (incluido con Node.js)
-Git
-Una cuenta en Neon para PostgreSQL en la nube (plan gratuito disponible)
-Una cuenta en Upstash para Redis REST API (plan gratuito disponible)
-Una cuenta en MotherDuck para DuckDB en la nube (plan gratuito disponible)
-Una cuenta en Cloudinary para almacenamiento de imágenes (plan gratuito disponible)
+- [Node.js](https://nodejs.org) v20 o superior
+- npm (incluido con Node.js)
+- Git
+- Una cuenta en [Neon](https://neon.tech) para PostgreSQL en la nube (plan gratuito disponible)
+- Una cuenta en [Upstash](https://upstash.com) para Redis REST API (plan gratuito disponible)
+- Una cuenta en [Cloudinary](https://cloudinary.com) para almacenamiento de imágenes/PDFs (plan gratuito disponible)
+- Un OAuth Client ID de [Google Cloud Console](https://console.cloud.google.com/apis/credentials), si vas a probar el login con Google
 
-##  Estructura del Proyecto
+## Estructura del proyecto
 
-\`\`\`text
+```text
 backend-innova/
 ├── prisma/
 │   ├── schema.prisma          # Modelos de base de datos
 │   ├── migrations/            # Historial de migraciones SQL
-│   └── seed.ts                # Datos iniciales (rubros)
+│   └── seed.ts                # Datos iniciales (rubros de negocio)
 ├── src/
-│   ├── app.ts                 # Express app: middlewares, rutas, CORS, rate limiting
-│   ├── server.ts              # Punto de entrada del API server
-│   ├── worker.ts              # Pipeline de telemetría (Redis → MotherDuck)
+│   ├── app.ts                 # Express app: CORS, rate limiting, montaje de rutas, Swagger
+│   ├── server.ts              # Punto de entrada del proceso API
+│   ├── worker.ts              # Punto de entrada del proceso worker (Redis → PostgreSQL)
 │   ├── controllers/           # Capa HTTP: parsea req/res, delega a services
-│   ├── services/              # Capa de negocio: lógica, transacciones, validaciones de dominio
-│   ├── middlewares/           # Auth, autorización, validación, errores, uploads
+│   ├── services/              # Capa de negocio: lógica, transacciones, reglas de dominio
+│   ├── middlewares/           # Auth, autorización por rol, validación, errores, uploads
 │   ├── routes/                # Definición de rutas y middleware stack por endpoint
 │   ├── schema/                # Schemas Zod para validación de entradas
 │   ├── types/                 # Interfaces TypeScript por dominio
-│   └── lib/
-│       └── prisma.ts          # Singleton de PrismaClient
+│   ├── data/                  # Catálogos estáticos (ej. FAQs sugeridas)
+│   ├── utils/                 # Funciones puras (slugs, normalización de texto)
+│   └── lib/                   # Prisma singleton, configuración de CORS
+├── tests/                     # Tests (test runner nativo de Node, vía tsx)
 ├── swagger.yaml               # Especificación OpenAPI 3.0
 ├── render.yaml                # Configuración de deploy en Render
-├── tsconfig.json              # Configuración del compilador TypeScript
+├── tsconfig.json
 └── package.json
-\`\`\`
+```
 
-## Configuracion del entorno
+## Configuración del entorno
 
-Clona el repositorio.
+1. Cloná el repositorio:
+   ```bash
+   git clone https://github.com/danielaarriazu/backend-innova.git
+   cd backend-innova
+   ```
 
-1. Clona el repositorio.
-2. Instala las dependencias del proyecto:
-   \`\`\`bash
+2. Instalá las dependencias:
+   ```bash
    npm install
-   \`\`\`
-3. Crea tu archivo `.env` en la raíz con tus credenciales de PostgreSQL y tu clave maestra para JWT:
-   \`\`\`env
+   ```
+
+3. Creá tu archivo `.env` en la raíz (armalo a partir de esta plantilla):
+   ```env
    NODE_ENV=development
    PORT=3000
-   # Copiá la connection string desde el panel de Neon
-   DATABASE_URL="tu_url_de_neon_aqui"
+
+   # Neon → Dashboard del proyecto → Connection Details
+   # "Pooled connection" para DATABASE_URL, "Direct connection" para DIRECT_URL
+   DATABASE_URL="postgresql://usuario:password@host-pooler.neon.tech/dbname?sslmode=require"
+   DIRECT_URL="postgresql://usuario:password@host.neon.tech/dbname?sslmode=require"
+
    # Generá una clave secreta fuerte. Ejemplo:
    # node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    JWT_SECRET="tu_clave_generada_criptograficamente"
-   # Obtenelos desde: Upstash Console → Tu database → REST API
+
+   # Upstash Console → tu database → REST API
    UPSTASH_REDIS_REST_URL="https://tu-url-upstash.io"
    UPSTASH_REDIS_REST_TOKEN="tu-token-upstash"
-   # Obtenelo desde: app.motherduck.com → Settings → Access Tokens
-   MOTHERDUCK_TOKEN="tu-token-motherduck"
-   # Obtenelos desde: Cloudinary Console → Dashboard
+
+   # Cloudinary Console → Dashboard
    CLOUDINARY_CLOUD_NAME="tu_cloud_name"
    CLOUDINARY_API_KEY="tu_api_key"
    CLOUDINARY_API_SECRET="tu_api_secret"
-   # URL exacta del frontend que va a consumir la API
-   FRONTEND_URL="http://localhost:5173"
-   \`\`\`
-4. Sincroniza las tablas en tu base de datos y genera el cliente de Prisma:
-   \`\`\`bash
+
+   # URL(s) del frontend que consumen la API (separadas por coma si son varias)
+   FRONTEND_URLS="http://localhost:5173"
+
+   # Solo si vas a probar el login con Google
+   GOOGLE_CLIENT_ID="tu_client_id.apps.googleusercontent.com"
+   ```
+
+5. Generá el cliente de Prisma y aplicá las migraciones:
+   ```bash
+   npx prisma generate
    npx prisma migrate dev
-   \`\`\`
-5. Crear las tablas en la base de datos
-   - Aplica todas las migraciones SQL pendientes a tu base de datos PostgreSQL:
-     npx prisma migrate dev
-6. Cargar datos iniciales (seed)
-   - Precarga los rubros de negocio disponibles para la configuración del bot
-     npm run seed
-7. Levanta el proyecto. **Debes iniciar ambos procesos para que funcione completo**:
-   - Para levantar solo la API:
-     \`\`\`bash
+   ```
+   Esto crea las tablas en tu base de Neon y, si es la primera vez, corre automáticamente el seed (rubros de negocio). Para volver a cargarlo manualmente en cualquier momento:
+   ```bash
+   npx prisma db seed
+   ```
+
+6. Levantá el proyecto. **Necesitás los dos procesos corriendo para que el sistema funcione completo** (el worker es el que efectivamente persiste la telemetría):
+   - API (con recarga automática):
+     ```bash
      npm run dev
-     \`\`\`
-   - Para levantar el Worker de Analítica (abre otra terminal):
-     \`\`\`bash
+     ```
+   - Worker de telemetría, en otra terminal:
+     ```bash
      npm run worker
-     \`\`\`
-   - Para levantar **ambos a la vez** (Simulación de producción con concurrently):
-     \`\`\`bash
+     ```
+   - Alternativa, simulando producción — **requiere compilar antes**, porque usa los artefactos de `dist/` en vez de correr desde `src/` con `tsx`:
+     ```bash
+     npm run build
      npm start
-     \`\`\`
+     ```
 
+7. Verificá que todo esté arriba:
+   ```bash
+   curl http://localhost:3000/health
+   ```
+   La documentación interactiva de la API queda disponible en `http://localhost:3000/api-docs`.
 
-## Módulos Implementados
-### Autenticación y Gestión de Usuario
-* Registro de emprendedor e inicialización automática de la configuración de su bot.
-* Login seguro con generación de JWT válido por 24 horas.
-* Modificación de contraseña con validaciones estrictas (longitud, mayúsculas, números y símbolos).
-* Baja lógica de cuenta (Soft Delete) conservando métricas históricas.
+8. Corré los tests:
+   ```bash
+   npm test
+   ```
 
-### Registro de movimientios
-* Registro integral de actividades en la base de datos para cada acción realizada en la API.
-* Captura automática de tipo de movimiento, IP de origen y dispositivo (User-Agent).
+## Módulos implementados
 
-### Configuración del Bot
-   **Configuracion bot (`/api/bot`):**
-    **GET:** Recupera la configuración actual.
-    **PUT:** Actualiza los parámetros de comportamiento.
+### Autenticación y cuenta
+- Registro de emprendedor con inicialización automática de su `ConfiguracionBot` (nace inactiva hasta cargar los datos mínimos del negocio).
+- Login con JWT (24h) y login con Google (verificación de ID Token).
+- Cambio de contraseña y baja lógica de cuenta (soft delete, conserva métricas históricas).
 
-### FAQs y Categorías
-* **Categorías FAQ (`/api/faq-categories`):**
-  * **GET / POST / PUT / DELETE:** CRUD completo. Incluye protección de integridad relacional (`onDelete: Restrict`), impidiendo borrar una categoría si esta posee preguntas asociadas.
-* **Preguntas Frecuentes - FAQs (`/api/faqs`):**
-  * **GET / POST / PUT / DELETE:** Gestión integral permitiendo reasignación de categorías mediante Joins relacionales.
+### Configuración del bot (`/api/bot`)
+- Lectura/edición de los datos del negocio (nombre, horario, mensajes, colores, logo).
+- Activación automática del bot apenas están cargados nombre, teléfono y rubro.
+- Slug público autogenerado, personalizable una única vez (`/api/bot/slug`).
 
-### Productos (`/api/products`):**
-    * **GET / POST / PUT / DELETE:** Administración completa del inventario para que el bot pueda responder sobre él.
+### Categorías de FAQ y FAQs (`/api/faq-categories`, `/api/faqs`)
+- CRUD completo, con protección de integridad relacional (`onDelete: Restrict`: no se puede borrar una categoría con preguntas asociadas).
+- Catálogo de preguntas frecuentes sugeridas para arrancar un bot nuevo con contenido (`/api/faqs/suggestions`).
 
-### Telemetría y Analítica (NUEVO)
-* **Pipeline Asíncrono:** Captura eventos del frontend (clics, page views, embudo) sin bloquear la API principal, utilizando **Redis** como cola de mensajes.
-* **Consumidor en Segundo Plano:** El `worker.ts` procesa los lotes y los inserta de forma segura en **MotherDuck**.
-* **Unificación de Identidad:** Capacidad de rastrear a un usuario desde su visita anónima hasta su conversión, interceptando el JWT (Middleware opcional).
+### Productos (`/api/products`)
+- CRUD completo con imagen (Cloudinary), filtros y paginación.
+- Marca `requiereCotizacion` por producto: define si el bot puede vender ese ítem con precio automático o si siempre deriva a una cotización manual.
+
+### Motor conversacional (`/api/chatbot/chat`)
+- Máquina de estados por sesión (`SesionChat.contexto`): catálogo, FAQs, captura de datos de contacto, armado de carrito y derivación a un humano o a un presupuesto según corresponda.
+- Se apaga automáticamente mientras el emprendedor tiene la conversación tomada manualmente.
+
+### Consultas y mensajería (`/api/consultations`, `/api/mensajes`)
+- Bandeja de conversaciones del emprendedor, con cambio de estado (`nueva` → `en_proceso` → `resuelta`/`cerrada`) y toma de control manual del chat.
+- Historial de mensajes por sesión, accesible tanto por el visitante anónimo como por el emprendedor.
+
+### Presupuestos / cotizaciones (`/api/presupuestos`)
+- Generación de PDF formal (PDFKit) y subida a Cloudinary, tanto para presupuestos originados por el bot como cotizados manualmente por el emprendedor.
+- Al marcar un presupuesto `CONCRETADO`, cierra automáticamente la consulta asociada y reactiva el bot para esa sesión.
+
+### Endpoints públicos (`/api/public/chatbot/{slug}/...`)
+- Sin autenticación — son los que consume directamente el widget embebido en la web del negocio: inicialización, catálogo, FAQs, creación de consultas/mensajes/presupuestos y captura de contacto.
+
+### Telemetría
+- `POST /api/telemetry` responde `200` de inmediato y encola el evento en Redis (`lpush`), sin bloquear al usuario.
+- `worker.ts` consume la cola cada 10 segundos y persiste los eventos en PostgreSQL (tabla `eventos_telemetry`), reencolando ante cualquier error de inserción.
+
+### Auditoría
+- Registro de actividad (`RegistroActividad`) para acciones relevantes (login, cambios de configuración, edición de slug), con IP y dispositivo — de forma *fire-and-forget*, nunca bloquea la operación principal.
+
+---
+
+Documentación adicional: especificación completa de la API en [`swagger.yaml`](./swagger.yaml) / `/api-docs`.
