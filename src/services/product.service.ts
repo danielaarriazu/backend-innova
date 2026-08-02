@@ -98,6 +98,24 @@ export const obtenerProductos = async (usuarioId: string, filtros: GetProductsIn
 export const actualizarProducto = async (data: UpdateProductInput) => {
   const productoExistente = await obtenerProductoDeUsuario(data.usuarioId, data.productoId);
 
+  if (data.nombre){
+    const nombreDuplicado = await prisma.producto.findFirst({
+      where: {
+        botId: productoExistente.botId,
+        nombre: {
+          equals: data.nombre.trim(),
+          mode: 'insensitive'
+        },
+        id:{  
+          not: data.productoId
+        }
+      }
+    });
+    if (nombreDuplicado) {
+      throw new Error('PRODUCT_NAME_EXISTS');
+    }
+  }
+
   const precioFinal = data.precio !== undefined ? data.precio : productoExistente.precio;
   const requiereCotizacionFinal = data.requiereCotizacion
     ?? productoExistente.requiereCotizacion;

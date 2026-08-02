@@ -105,6 +105,10 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
         res.status(400).json({ success: false, error: 'Los productos con precio fijo deben tener un precio mayor a 0.' });
         return;
       }
+      if (error.message === 'PRODUCT_ALREADY_EXISTS') {
+        res.status(409).json({ success: false, error: 'Ya existe un producto con este nombre en tu catálogo.' });
+        return;
+      }
     }
     next(error);
   }
