@@ -1,14 +1,14 @@
 openapi: 3.0.0
 info:
-title: API de Autenticación, Configuración de Bot y Log de registros - InnovaLab Chatbot
+  title: InnovaLab Chatbot
   description: >
     Especificación completa de los endpoints del backend de InnovaLab.
     
     El sistema cuenta con una arquitectura de múltiples módulos:
     - Autenticación y Seguridad: Registro, login, historial de sesiones y gestión de cuenta.
     - Configuración del Bot: Permite al emprendedor personalizar la experiencia de su asistente virtual, gestionar categorías, preguntas frecuentes (FAQs) y cargar su catálogo de productos.
-    - Analítica y Telemetría: Pipeline de datos de alta concurrencia que registra el comportamiento de los usuarios (clics, navegación, errores) a lo largo del embudo de conversión, unificando el tráfico de visitantes anónimos con usuarios autenticados.
-    
+    - Mensajería y Chatbot Engine: Procesa las interacciones del usuario, mantiene el contexto de la conversación y permite derivar consultas a un asesor humano.
+    - Consultas y Presupuestos: Gestiona leads, cotizaciones y permite generar presupuestos formales en PDF.
     Documentación detallada de cada endpoint, incluyendo validaciones estrictas, manejo de Rate Limiting, respuestas esperadas y códigos de error.
   version: 1.1.0
 servers:
@@ -290,12 +290,16 @@ tags:
     description: Catálogo de productos del negocio
   - name: Telemetría
     description: Registro de eventos de comportamiento del usuario
-  - name: Público 
-    description: Endpoints abiertos para el widget del chat  
+  - name: API Pública
+    description: Endpoints abiertos (sin autenticación) que consume el widget embebido del chat
   - name: Consultas
     description: Gestión de leads, cotizaciones y atención al cliente por parte del emprendedor
   - name: Mensajería
     description: Historial de chat y control de sesión
+  - name: Chatbot Engine
+    description: Motor conversacional — procesa las acciones del bot y el contexto de cada sesión
+  - name: Presupuestos
+    description: Cotizaciones formales (PDF), tanto las generadas por el bot como las manuales del emprendedor
 
 paths:
    # ==========================================================================
@@ -1554,128 +1558,6 @@ paths:
  # ==========================================================================
   # PRODUCTOS
   # ==========================================================================
-  /api/presupuestos:
-    post:
-      tags: [Presupuestos]
-      summary: Crear un presupuesto
-      description: La clave de idempotencia evita presupuestos duplicados ante reintentos.
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [consultaId, items, idempotencyKey]
-              properties:
-                consultaId: { type: string, format: uuid }
-                diasValidez: { type: integer, minimum: 1, maximum: 365, default: 7 }
-                idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
-                items:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: object
-                    required: [nombre, cantidad, precioUnitario]
-                    properties:
-                      productoId: { type: string, format: uuid }
-                      nombre: { type: string }
-                      cantidad: { type: integer, minimum: 1 }
-                      precioUnitario: { type: number, minimum: 0 }
-      responses:
-        '201': { description: Presupuesto creado }
-        '200': { description: Reintento idempotente }
-        '404': { description: Consulta o producto inexistente }
-        '409': { description: Conflicto de idempotencia }
-    get:
-      tags: [Presupuestos]
-      summary: Listar presupuestos del negocio autenticado
-      security:
-        - bearerAuth: []
-      parameters:
-        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
-        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
-        - in: query
-          name: estado
-          schema:
-            type: string
-            enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
-        - { in: query, name: consultaId, schema: { type: string, format: uuid } }
-        - { in: query, name: startDate, schema: { type: string, format: date-time } }
-        - { in: query, name: endDate, schema: { type: string, format: date-time } }
-      responses:
-        '200': { description: Lista paginada de presupuestos }
-
-  /api/presupuestos/{id}:
-    get:
-      tags: [Presupuestos]
-      summary: Obtener un presupuesto propio
-      security:
-        - bearerAuth: []
-      parameters:
-        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
-      responses:
-        '200': { description: Presupuesto encontrado }
-        '404': { description: Presupuesto inexistente o ajeno }
-
-  /api/presupuestos/{id}/estado:
-    patch:
-      tags: [Presupuestos]
-      summary: Cambiar el estado de un presupuesto propio
-      security:
-        - bearerAuth: []
-      parameters:
-        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [estado]
-              properties:
-                estado:
-                  type: string
-                  enum: [PENDIENTE, EN_PROCESO, ENVIADO, CONCRETADO, RECHAZADO]
-      responses:
-        '200': { description: Estado actualizado }
-        '404': { description: Presupuesto inexistente o ajeno }
-        '409': { description: Transición de estado no permitida }
-
-  /api/presupuestos/{id}/cotizar:
-    put:
-      tags: [Presupuestos]
-      summary: Cotizar, generar el PDF y marcar el presupuesto como enviado
-      security:
-        - bearerAuth: []
-      parameters:
-        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [itemsCotizados]
-              properties:
-                diasValidez: { type: integer, minimum: 1, maximum: 365 }
-                itemsCotizados:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: object
-                    required: [nombre, cantidad, precioUnitario]
-                    properties:
-                      productoId: { type: string, format: uuid }
-                      nombre: { type: string }
-                      cantidad: { type: integer, minimum: 1 }
-                      precioUnitario: { type: number, minimum: 0 }
-      responses:
-        '200': { description: Presupuesto cotizado y PDF persistido }
-        '404': { description: Presupuesto inexistente o ajeno }
-        '409': { description: Estado incompatible con la cotización }
-
   /api/products:
     post:
       tags: [Productos]
@@ -1915,7 +1797,7 @@ paths:
  
         ## Pipeline de datos
         ```
-        POST /api/telemetry → Redis (lpush) → Worker (rpop cada 10s) → MotherDuck
+        POST /api/telemetry → Redis (lpush) → Worker (rpop cada 10s) → PostgreSQL (tabla eventos_telemetry)
         ```
  
         ## Rate limit específico
@@ -2012,7 +1894,7 @@ paths:
  
               usuario_autenticado_dashboard:
                 summary: "Usuario autenticado — navegación en el dashboard"
-                description: "El token JWT es opcional pero si se envía, el usuarioId se registra en MotherDuck."
+                description: "El token JWT es opcional pero si se envía, el usuarioId se asocia al evento guardado en la base de datos."
                 value:
                   sessionId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                   eventos:
@@ -2241,13 +2123,15 @@ paths:
         '429':
           description: Demasiadas solicitudes a la API (apiLimiter - Max 200 req/min).
 
-    /api/public/chatbot/{slug}/consultations:
+  /api/public/chatbot/{slug}/consultations:
     post:
       tags: [API Pública]
       summary: Crear una nueva consulta/lead desde el bot
       description: |
         Registra una nueva conversación iniciada por el visitante en el widget del chat.
-        Mapea el `sessionId` del cliente y permite asignar un asunto inicial.
+        `tipoConsulta`, `asunto` y `descripcion` los fija el propio servidor (no son
+        configurables desde el body) — el único identificador relevante que envía el
+        cliente es `sessionId` (o `sessionAnonimaId` como *fallback* si todavía no lo tiene).
       parameters:
         - in: path
           name: slug
@@ -2268,19 +2152,10 @@ paths:
                   type: string
                   maxLength: 200
                   description: Fallback si sessionId no está definido.
-                tipoConsulta:
-                  type: string
-                  maxLength: 100
                 canal:
                   type: string
-                  enum: [web, whatsapp]
+                  enum: [web, chatbot]
                   default: web
-                asunto:
-                  type: string
-                  maxLength: 250
-                descripcion:
-                  type: string
-                  maxLength: 2000
       responses:
         '201':
           description: Consulta creada con éxito.
@@ -2310,7 +2185,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [emisor, contenido, tipoMensaje]
+              required: [emisor, contenido]
               properties:
                 emisor:
                   type: string
@@ -2322,6 +2197,7 @@ paths:
                 tipoMensaje:
                   type: string
                   enum: [TEXTO, ACCION, PRESUPUESTO]
+                  description: Opcional.
       responses:
         '201':
           description: Mensaje agregado exitosamente.
@@ -2373,6 +2249,61 @@ paths:
         '400':
           description: El nombre o teléfono tienen un formato inválido.
 
+  /api/public/chatbot/{slug}/consultations/{id}/budgets:
+    post:
+      tags: [API Pública]
+      summary: Solicitar presupuesto desde el widget del bot
+      description: |
+        Crea un presupuesto a partir del carrito armado por el visitante durante la conversación.
+        **Regla de negocio:** si alguno de los ítems corresponde a un producto con
+        `requiereCotizacion: true`, el sistema no calcula un total automático — arma un
+        presupuesto pendiente y `requiereCotizacionManual: true`, derivando la consulta a
+        atención humana en vez de cerrar un precio.
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID de la consulta sobre la que se solicita el presupuesto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [productoId, cantidad]
+                    properties:
+                      productoId: { type: string, format: uuid }
+                      cantidad: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Presupuesto creado (automático o pendiente de cotización manual, según el carrito).
+          content:
+            application/json:
+              example:
+                success: true
+                requiereCotizacionManual: false
+                total: 15400.5
+        '400':
+          description: Error de validación (ítems vacíos o `productoId`/`cantidad` inválidos).
+        '404':
+          description: Bot, consulta o alguno de los productos no encontrado.
+
   # ==========================================================================
   # MOTOR DEL CHATBOT
   # ==========================================================================
@@ -2389,12 +2320,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [accion, sessionId, botId]
+              required: [sessionId, botId]
               properties:
                 accion:
                   type: string
                   minLength: 1
-                  description: "Acción a ejecutar (ej. INICIO, MOSTRAR_CATALOGO, SOLICITAR_PRESUPUESTO, ENVIAR_DATOS)."
+                  description: "Acción a ejecutar (ej. INICIO, MOSTRAR_CATALOGO, SOLICITAR_PRESUPUESTO, ENVIAR_DATOS). Opcional."
                 sessionId:
                   type: string
                   minLength: 1
