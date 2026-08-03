@@ -133,6 +133,8 @@ model Producto {
   fechaCreacion      DateTime           @default(now())
   fechaActualizacion DateTime           @updatedAt
   consultas          ConsultaProducto[]
+
+  @@unique([botId, nombre])
 }
 
 model SesionChat {
