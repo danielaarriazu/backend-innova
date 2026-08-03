@@ -1,6 +1,10 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { registrarActividad } from './activity.service';
 import { CreateProductInput, UpdateProductInput, DeleteProductInput, GetProductsInput } from '../types/product.types';
+
+const esNombreDuplicado = (error: unknown): boolean =>
+  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 
 // Función auxiliar para validar la existencia del bot
 const obtenerBotDeUsuario = async (usuarioId: string) => {
@@ -30,21 +34,27 @@ export const crearProducto = async (data: CreateProductInput) => {
   });
 
   if (productoExistente) {
-    throw new Error('PRODUCT_EXISTS');
+    throw new Error('PRODUCT_ALREADY_EXISTS');
   }
 
-  const nuevoProducto = await prisma.producto.create({
-    data: {
-      botId: bot.id,
-      nombre: data.nombre.trim(),
-      descripcion: data.descripcion?.trim(),
-      precio: data.precio,
-      requiereCotizacion: data.requiereCotizacion ?? false,
-      stock: data.stock ?? 0,
-      urlImagen: data.urlImagen?.trim(),
-      activo: data.activo ?? true
-    }
+  let nuevoProducto;
+  try{
+    nuevoProducto = await prisma.producto.create({
+      data: {
+        botId: bot.id,
+        nombre: data.nombre.trim(),
+        descripcion: data.descripcion?.trim(),
+        precio: data.precio,
+        requiereCotizacion: data.requiereCotizacion ?? false,
+        stock: data.stock ?? 0,
+        urlImagen: data.urlImagen?.trim(),
+        activo: data.activo ?? true
+      }
   });
+  } catch (error) {
+    if (esNombreDuplicado(error)) throw new Error('PRODUCT_ALREADY_EXISTS');
+    throw error;
+  }
  
   await registrarActividad(
     data.usuarioId,
@@ -112,7 +122,7 @@ export const actualizarProducto = async (data: UpdateProductInput) => {
       }
     });
     if (nombreDuplicado) {
-      throw new Error('PRODUCT_NAME_EXISTS');
+      throw new Error('PRODUCT_ALREADY_EXISTS');
     }
   }
 
@@ -124,18 +134,24 @@ export const actualizarProducto = async (data: UpdateProductInput) => {
     throw new Error('FIXED_PRICE_REQUIRED');
   }
  
-  const productoActualizado = await prisma.producto.update({
-    where: { id: data.productoId },
-    data: {
-      nombre: data.nombre ? data.nombre.trim() : productoExistente.nombre,
-      descripcion: data.descripcion !== undefined ? data.descripcion?.trim() : productoExistente.descripcion,
-      precio: precioFinal,
-      requiereCotizacion: requiereCotizacionFinal,
-      stock: data.stock !== undefined ? data.stock : productoExistente.stock,
-      urlImagen: data.urlImagen !== undefined ? data.urlImagen?.trim() : productoExistente.urlImagen,
-      activo: data.activo !== undefined ? data.activo : productoExistente.activo
-    }
-  });
+  let productoActualizado;
+  try {
+    productoActualizado = await prisma.producto.update({
+      where: { id: data.productoId },
+      data: {
+        nombre: data.nombre ? data.nombre.trim() : productoExistente.nombre,
+        descripcion: data.descripcion !== undefined ? data.descripcion?.trim() : productoExistente.descripcion,
+        precio: precioFinal,
+        requiereCotizacion: requiereCotizacionFinal,
+        stock: data.stock !== undefined ? data.stock : productoExistente.stock,
+        urlImagen: data.urlImagen !== undefined ? data.urlImagen?.trim() : productoExistente.urlImagen,
+        activo: data.activo !== undefined ? data.activo : productoExistente.activo
+      }
+    });
+  } catch (error) {
+    if (esNombreDuplicado(error)) throw new Error('PRODUCT_ALREADY_EXISTS');
+    throw error;
+  }
 
    await registrarActividad(
     data.usuarioId,
