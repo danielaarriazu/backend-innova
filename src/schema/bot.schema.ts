@@ -86,7 +86,7 @@ export const updateSlugSchema = z.object({
 
 export const toggleBotStatusSchema = z.object({
   params: z.object({
-    id: z.string().min(1, 'El ID del bot es requerido'),
+    slug: z.string().min(1, 'El slug del bot es requerido'),
   }),
   body: z.object({
     activo: z.boolean({

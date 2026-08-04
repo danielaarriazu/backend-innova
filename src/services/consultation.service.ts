@@ -89,6 +89,14 @@ export const obtenerConsulta = async (usuarioId: string, consultaId: string) => 
     include: consultationInclude,
   });
   if (!consulta) throw new Error('CONSULTATION_NOT_FOUND');
+
+  if (consulta.estado === EstadoConsulta.NUEVA) {
+    await prisma.consulta.update({
+      where: { id: consulta.id },
+      data: { estado: EstadoConsulta.EN_PROCESO },
+      include: consultationInclude,
+    });
+  }
   return toConsultationDto(consulta);
 };
 
