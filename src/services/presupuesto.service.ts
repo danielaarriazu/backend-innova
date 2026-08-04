@@ -42,6 +42,8 @@ export async function generarPdfDesdeBaseDeDatos(presupuestoId: number): Promise
     nombre: configNegocio.nombreNegocio || 'Negocio sin nombre', 
     telefono: configNegocio.telefono || '',
     horario: configNegocio.horarioAtencion || 'Horario a coordinar',
+    colorPrimario: configNegocio.colorPrimario || '#13A8A2',
+    colorSecundario: configNegocio.colorSecundario || '#1372A8',
   };
 
   const items = presupuesto.detalle as unknown as ItemPresupuesto[];

@@ -132,7 +132,7 @@ export async function obtenerEstadisticasMetricas(usuarioId: string) {
     })),
     estadoPresupuestos: presupuestosPorEstado.map(p => ({
       estado: p.estado.charAt(0) + p.estado.slice(1).toLowerCase(), 
-      cantidad: p._count._all ?? 0
+      cantidad: (p._count as any)._all ?? 0
     }))
   };
 }

@@ -35,9 +35,11 @@ export async function generarPresupuestoFormal(
 
     // --- 2. ENCABEZADO CON DEGRADADO (GRADIENT) ---
     // Creamos un degradado horizontal de izquierda (x=40) a derecha (x=555)
+    const colorPrimario = negocio.colorPrimario || '#13A8A2'; // Cyan/Teal
+    const colorSecundario = negocio.colorSecundario || '#0A73B8'; // Azul EmprendeBot
     const headerGradient = doc.linearGradient(40, 40, 555, 40);
-    headerGradient.stop(0, '#13A8A2'); // Cyan/Teal
-    headerGradient.stop(1, '#0A73B8'); // Azul EmprendeBot
+    headerGradient.stop(0, colorPrimario);
+    headerGradient.stop(1, colorSecundario);
 
     doc.roundedRect(40, 40, 515, 80, 10).fill(headerGradient);
     
@@ -159,7 +161,7 @@ export async function generarPresupuestoFormal(
     doc.fillColor('#2A3441').font('Helvetica-Bold').fontSize(14);
     doc.text(etiquetaIzquierda, 40, yPosition);
 
-    doc.fillColor('#13A8A2').text(
+    doc.fillColor(colorPrimario).text(
       textoMontoDerecha,
       355, 
       yPosition, 

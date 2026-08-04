@@ -12,4 +12,6 @@ export interface DatosNegocio {
   logoPath?: string; 
   direccion?: string;
   email?: string;
+  colorPrimario?: string;
+  colorSecundario?: string;
 }
