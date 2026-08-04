@@ -4,6 +4,7 @@ dotenv.config();
 
 import app from './app';
 import prisma from './lib/prisma';
+import { initCronJobs } from './services/cron.service';
 
 const PORT = process.env.PORT || 3000;
 
@@ -15,6 +16,7 @@ async function startServer() {
     app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`Servidor backend escuchando en puerto ${PORT}`);
       console.log(`Documentación disponible en /api-docs`);
+      initCronJobs();
     });
   } catch (error) {
     console.error('Error crítico al iniciar el servidor:', error);
