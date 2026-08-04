@@ -245,7 +245,7 @@ model Consulta {
   botId              String
   bot                ConfiguracionBot   @relation(fields: [botId], references: [id], onDelete: Cascade)
   sessionId   String?
-  estado             EstadoConsulta     @default(NUEVA)
+  estado             EstadoConsulta     @default(INICIADA)
   derivada           Boolean            @default(false)
   cerradaPor         CerradaPor?
   tipoConsulta       String?
