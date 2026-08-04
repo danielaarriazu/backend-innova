@@ -236,7 +236,7 @@ export const actualizarContactoPublico = async (
       where: { id: consultaId },
       data: {
         derivada: true,
-        estado: EstadoConsulta.EN_PROCESO,
+        estado: EstadoConsulta.NUEVA,
         tipoConsulta: 'DERIVAR_HUMANO',
         asunto: 'Derivación de Chatbot',
       },
