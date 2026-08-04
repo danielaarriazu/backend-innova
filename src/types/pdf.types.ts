@@ -2,6 +2,7 @@ export interface ItemPresupuesto {
   nombre: string;
   cantidad: number;
   precioUnitario: number; 
+  requiereCotizacion?: boolean;
 }
 
 export interface DatosNegocio {

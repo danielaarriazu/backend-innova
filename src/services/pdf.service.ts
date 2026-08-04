@@ -98,7 +98,7 @@ export async function generarPresupuestoFormal(
       let textoPrecio= '';
       let textoSubtotal = '';
 
-      if (item.precioUnitario === 0) {
+      if (item.requiereCotizacion) {
         requireCotizacion = true;
         textoNombre = `${item.nombre} *`;
         textoPrecio = 'A cotizar';
