@@ -64,7 +64,7 @@ export const cotizarPresupuesto = async (req: Request, res: Response): Promise<v
     console.error('[ERROR] Error al cotizar presupuesto en el controller:', error);
     res.status(500).json({ 
       error: 'Ocurrió un error interno al actualizar el presupuesto.',
-      detalle: error.message 
+        ...(process.env.NODE_ENV !== 'production' && { detalle: error.message }),
     });
   }
 };

@@ -1,5 +1,11 @@
 import prisma from '../lib/prisma';
 
+const ZONA_HORARIA_ARGENTINA = 'America/Argentina/Buenos_Aires';
+
+function obtenerFechaLocal(fecha: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_HORARIA_ARGENTINA }).format(fecha);
+}
+
 export async function obtenerResumenDashboard(usuarioId: string) {
   const bot = await prisma.configuracionBot.findUnique({ where: { usuarioId } });
   if (!bot) throw new Error('BOT_NOT_FOUND');
@@ -99,14 +105,14 @@ export async function obtenerEstadisticasMetricas(usuarioId: string) {
   }
 
   // Cargamos el array de la semana con los datos reales
-  consultasUltimosDias.forEach(c => {
-    const fechaStr = c.fechaCreacion.toISOString().split('T')[0];
+   consultasUltimosDias.forEach(c => {
+    const fechaStr = obtenerFechaLocal(c.fechaCreacion);
     const diaEncontrado = actividadSemanal.find(d => d.fechaString === fechaStr);
     if (diaEncontrado) diaEncontrado.consultas += 1;
   });
-
+ 
   presupuestosUltimosDias.forEach(p => {
-    const fechaStr = p.fechaCreacion.toISOString().split('T')[0];
+    const fechaStr = obtenerFechaLocal(p.fechaCreacion);
     const diaEncontrado = actividadSemanal.find(d => d.fechaString === fechaStr);
     if (diaEncontrado) diaEncontrado.presupuestos += 1;
   });
@@ -126,7 +132,7 @@ export async function obtenerEstadisticasMetricas(usuarioId: string) {
     })),
     estadoPresupuestos: presupuestosPorEstado.map(p => ({
       estado: p.estado.charAt(0) + p.estado.slice(1).toLowerCase(), 
-      cantidad: (p._count as any)._all ?? 0
+      cantidad: p._count._all ?? 0
     }))
   };
 }
