@@ -20,13 +20,14 @@ export async function obtenerResumenDashboard(usuarioId: string) {
     prisma.consulta.count({ where: { botId } }),
     prisma.consulta.count({ where: { botId, estado: 'EN_PROCESO', derivada: true } }), 
     prisma.consulta.count({
-      where: { 
+      where: {
         botId,
-        OR: [{ estado: 'RESUELTA' }, { cerradaPor: 'BOT' },
-          {tipoConsulta: 'PRESUPUESTO', estado: 'NUEVA'}
-        ] 
+        OR: [
+          { estado: 'RESUELTA', cerradaPor: 'BOT' },
+          { tipoConsulta: 'PRESUPUESTO', estado: 'NUEVA' },
+        ],
       },
-     }),
+    }),
     prisma.presupuesto.count({ where: { consulta: { botId } } })
   ]);
 
