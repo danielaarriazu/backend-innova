@@ -11,7 +11,7 @@ export async function limpiarConsultasInactivas() {
     const consultasInactivas = await prisma.consulta.findMany({
       where: {
         derivada: false,
-        estado: { in: [EstadoConsulta.INICIADA, EstadoConsulta.NUEVA] },
+        estado: EstadoConsulta.NUEVA,
         fechaActualizacion: { lt: hace60Minutos },
         sessionId: { not: null },
       },

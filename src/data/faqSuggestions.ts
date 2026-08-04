@@ -19,12 +19,6 @@ export const FAQ_SUGGESTIONS = [
     categoria: 'Envíos',
   },
   {
-    id: 'horario-atencion',
-    pregunta: '¿Cuál es el horario de atención?',
-    respuesta: 'Atendemos de lunes a viernes de 9 AM a 6 PM.',
-    categoria: 'Atención y horarios',
-  },
-  {
     id: 'stock-disponible',
     pregunta: '¿Tienen stock disponible?',
     respuesta: 'Sí, contamos con stock disponible para todos nuestros productos.',
