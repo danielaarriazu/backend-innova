@@ -32,6 +32,7 @@ export async function limpiarConsultasInactivas() {
       prisma.consulta.updateMany({
         where: {
           id: { in: consultasInactivas.map((c) => c.id) },
+          estado: EstadoConsulta.NUEVA,
         },
         data: {
           estado: EstadoConsulta.RESUELTA,
