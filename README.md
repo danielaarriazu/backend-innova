@@ -16,6 +16,7 @@ Backend del MVP de InnovaLab, una plataforma multi-tenant que le permite a un em
 - **Almacenamiento de imágenes y PDFs:** Cloudinary
 - **Generación de PDFs:** PDFKit (presupuestos/cotizaciones)
 - **Validación:** Zod v4
+- Tareas programadas: node-cron (limpieza de consultas inactivas cada 15 min)
 - **Documentación:** Swagger / OpenAPI 3.0 (`/api-docs`)
 - **Despliegue:** Render (Infra as Code vía `render.yaml`)
 
@@ -160,15 +161,23 @@ backend-innova/
 
 ### Motor conversacional (`/api/chatbot/chat`)
 - Máquina de estados por sesión (`SesionChat.contexto`): catálogo, FAQs, captura de datos de contacto, armado de carrito y derivación a un humano o a un presupuesto según corresponda.
-- Se apaga automáticamente mientras el emprendedor tiene la conversación tomada manualmente.
+- El bot está siempre activo.
 
 ### Consultas y mensajería (`/api/consultations`, `/api/mensajes`)
-- Bandeja de conversaciones del emprendedor, con cambio de estado (`nueva` → `en_proceso` → `resuelta`/`cerrada`) y toma de control manual del chat.
-- Historial de mensajes por sesión, accesible tanto por el visitante anónimo como por el emprendedor.
+-Bandeja de conversaciones del emprendedor. Ciclo de vida de una Consulta:
+INICIADA → nace así, antes de que el cliente toque cualquier botón.
+NUEVA → apenas el cliente interactúa con el bot (cualquier botón).
+EN_PROCESO → el emprendedor abre la consulta (o abre un presupuesto PENDIENTE vinculado — la sincronización es en ambos sentidos).
+RESUELTA → un presupuesto vinculado se marca CONCRETADO, o se cotiza manualmente después de haber estado EN_PROCESO, o el emprendedor la marca a mano (ej. la atendió por WhatsApp), o pasaron 60 minutos sin interacción de un cliente anónimo (limpieza automática, ver más abajo). Las consultas INICIADA quedan afuera de esta limpieza a propósito — sirven como señal de tasa de abandono.
+CERRADA → 100% manual, a criterio del emprendedor; el sistema nunca la asigna solo.
+Historial de mensajes por sesión, accesible tanto por el visitante anónimo como por el emprendedor.
 
 ### Presupuestos / cotizaciones (`/api/presupuestos`)
-- Generación de PDF formal (PDFKit) y subida a Cloudinary, tanto para presupuestos originados por el bot como cotizados manualmente por el emprendedor.
-- Al marcar un presupuesto `CONCRETADO`, cierra automáticamente la consulta asociada y reactiva el bot para esa sesión.
+- Generación de PDF formal (PDFKit, con los colores del negocio) y subida a Cloudinary, tanto para presupuestos originados por el bot como cotizados manualmente por el emprendedor.
+- Efecto sobre la Consulta vinculada según el estado del presupuesto: PENDIENTE y ENVIADO (100% automático del bot) → consulta NUEVA; abrir un presupuesto PENDIENTE → consulta EN_PROCESO; ENVIADO manualmente por el emprendedor o CONCRETADO → consulta RESUELTA; RECHAZADO → consulta EN_PROCESO.
+
+### Limpieza automática de consultas inactivas
+- Job programado (node-cron, cada 15 minutos) que marca como RESUELTA toda consulta NUEVA, sin derivar y sin interacción desde hace más de 60 minutos — pensado para conversaciones abandonadas por un cliente anónimo.
 
 ### Endpoints públicos (`/api/public/chatbot/{slug}/...`)
 - Sin autenticación — son los que consume directamente el widget embebido en la web del negocio: inicialización, catálogo, FAQs, creación de consultas/mensajes/presupuestos y captura de contacto.
@@ -179,6 +188,10 @@ backend-innova/
 
 ### Auditoría
 - Registro de actividad (`RegistroActividad`) para acciones relevantes (login, cambios de configuración, edición de slug), con IP y dispositivo — de forma *fire-and-forget*, nunca bloquea la operación principal.
+
+### Métricas (/api/metricas)
+- GET /dashboard: contadores livianos para la pantalla principal (consultas pendientes, presupuestos registrados, % de automatización estimado).
+- GET /reportes: estadísticas completas — totales, tasa de conversión, presupuestos por estado y evolución de los últimos 7 días (calculada en uso horario de Argentina).
 
 ---
 

@@ -300,6 +300,8 @@ tags:
     description: Motor conversacional — procesa las acciones del bot y el contexto de cada sesión
   - name: Presupuestos
     description: Cotizaciones formales (PDF), tanto las generadas por el bot como las manuales del emprendedor
+  - name: Métricas
+    description: Resumen y estadísticas del dashboard del emprendedor
 
 paths:
    # ==========================================================================
@@ -2520,7 +2522,10 @@ paths:
     get:
       tags: [Consultas]
       summary: Obtener detalle de una consulta
-      description: Devuelve toda la información de una consulta específica, incluyendo todos sus mensajes anidados.
+      description: |
+        Devuelve toda la información de una consulta específica, incluyendo todos sus mensajes anidados.
+        **Efecto secundario:** si la consulta está `nueva`, se marca automáticamente como `en_proceso`.
+        Si además tiene un presupuesto `PENDIENTE` vinculado, ese presupuesto también pasa a `EN_PROCESO`.
       security:
         - bearerAuth: []
       parameters:
@@ -2542,7 +2547,8 @@ paths:
       summary: Actualizar el estado de la consulta
       description: |
         Cambia el estado de atención de la consulta (nueva, en_proceso, resuelta, cerrada).
-        **Regla del Sistema:** Si el estado cambia a `RESUELTA` o `CERRADA`, el servidor automáticamente le devuelve el control del chat al bot (`BOT_ACTIVO`).
+        No incluye `iniciada` — ese estado nace solo, antes de que el cliente interactúe, y no se puede asignar manualmente.
+        **Nota:** el bot atiende siempre (no hay traspaso de control a un humano), este cambio de estado es solo para la bandeja del emprendedor.
       security:
         - bearerAuth: []
       parameters:
@@ -2736,7 +2742,9 @@ paths:
     patch:
       tags: [Presupuestos]
       summary: Cambiar estado de un presupuesto manualmente
-      description: Permite al emprendedor forzar un cambio de estado en el presupuesto hacia cualquier estado válido del ciclo de vida.
+      description: |
+        Permite al emprendedor forzar un cambio de estado en el presupuesto hacia cualquier estado válido del ciclo de vida.
+        **Efectos secundarios sobre la consulta vinculada:** `CONCRETADO` → la consulta pasa a `RESUELTA`. `RECHAZADO` → la consulta pasa a `EN_PROCESO`.
       security:
         - bearerAuth: []
       parameters:
@@ -2781,6 +2789,7 @@ paths:
         2. Genera un documento PDF con formato formal (colores, logo, tabla de precios) usando PDFKit.
         3. Sube el documento a Cloudinary.
         4. Borra el archivo local y guarda la URL segura en la base de datos.
+        5. La consulta vinculada pasa automáticamente a `RESUELTA`.
       security:
         - bearerAuth: []
       parameters:
@@ -2833,3 +2842,76 @@ paths:
           description: No autenticado o falta el token del emprendedor.
         '500':
           description: Error interno al generar el PDF mediante PDFKit o falló la subida a Cloudinary.
+
+  # ==========================================================================
+  # MÉTRICAS
+  # ==========================================================================
+  /api/metricas/dashboard:
+    get:
+      tags: [Métricas]
+      summary: Resumen rápido para la pantalla principal del dashboard
+      description: |
+        Contadores livianos para la vista de inicio del panel del emprendedor
+        (no incluye series de tiempo — para eso ver `/api/metricas/reportes`).
+        `automatizacionEstimada` cuenta: consultas resueltas por timeout de 60 min sin
+        interacción, MÁS presupuestos 100% automáticos del bot que el emprendedor todavía
+        no abrió (dejan de contar apenas los abre, porque pasan a `EN_PROCESO`).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resumen obtenido con éxito.
+          content:
+            application/json:
+              example:
+                consultasPendientes: 4
+                presupuestosRegistrados: 12
+                automatizacionEstimada:
+                  porcentaje: 68
+                  texto: "17 de 25 consultas fueron resueltas por el bot"
+                consultasResueltas: 17
+        '401':
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
+
+  /api/metricas/reportes:
+    get:
+      tags: [Métricas]
+      summary: Estadísticas completas para la sección de reportes/analítica
+      description: |
+        Incluye totales generales, tasa de conversión, estado de los presupuestos agrupados,
+        y la evolución de los últimos 7 días (consultas y presupuestos por día). Los días se
+        calculan en huso horario de Argentina (America/Argentina/Buenos_Aires), no en UTC.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas obtenidas con éxito.
+          content:
+            application/json:
+              example:
+                resumenTotal:
+                  conversaciones: 132
+                  presupuestos: 40
+                  ventasConcretadas: 18
+                  tasaConversion: 14
+                  derivadasAPersona: 22
+                evolucionSemanal:
+                  - dia: "Lun"
+                    consultas: 9
+                    presupuestos: 3
+                  - dia: "Mar"
+                    consultas: 12
+                    presupuestos: 5
+                estadoPresupuestos:
+                  - estado: "Pendiente"
+                    cantidad: 6
+                  - estado: "Enviado"
+                    cantidad: 16
+                  - estado: "Concretado"
+                    cantidad: 18
+        '401':
+          description: No autenticado.
+        '404':
+          description: Configuración de bot no encontrada.
