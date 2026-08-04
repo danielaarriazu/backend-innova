@@ -104,7 +104,7 @@ async function gestionarSubidaNube(presupuestoId: number, rutaPdf: string, resou
   
 export async function crearYEnviarPresupuesto(consultaId: string, items: ItemPresupuesto[]) {
   
-  const requiereCotizacion = items.some(item => !item.precioUnitario || item.precioUnitario === 0);
+  const requiereCotizacion = items.some(item => !item.precioUnitario || item.requiereCotizacion === true);
 
   const estadoInicial = requiereCotizacion ? 'PENDIENTE' : 'ENVIADO';
   
@@ -136,14 +136,19 @@ export async function cotizarYActualizarPresupuesto(
   presupuestoId: number, 
   itemsCotizados: ItemPresupuesto[]
 ): Promise<string> {
-  const nuevoTotalCalculado = itemsCotizados.reduce((suma, item) => {
+  const itemsFinales: ItemPresupuesto[] = itemsCotizados.map((item) => ({
+    ...item,
+    requiereCotizacion: false,
+  }));
+
+  const nuevoTotalCalculado = itemsFinales.reduce((suma, item) => {
     return suma + item.cantidad * item.precioUnitario;
   }, 0);
 
   await prisma.presupuesto.update({
     where: { id: presupuestoId },
     data: {
-      detalle: itemsCotizados as unknown as Prisma.InputJsonArray,
+      detalle: itemsFinales as unknown as Prisma.InputJsonArray,
       total: nuevoTotalCalculado,
       estado: 'ENVIADO',
       validezDias: diasValidez,
@@ -341,6 +346,7 @@ export async function crearPresupuestoPublico(input: CrearPresupuestoPublicoInpu
       nombre: producto.nombre,
       cantidad: item.cantidad,
       precioUnitario: producto.requiereCotizacion ? 0 : Number(producto.precio),
+      requiereCotizacion: producto.requiereCotizacion,
     };
   });
 
