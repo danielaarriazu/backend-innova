@@ -41,7 +41,8 @@ export const gestionarInteraccion = async (payload: ChatbotPayload) => {
           botId, 
           tipoConsulta: 'BOT',
           asunto: 'INTERACCION_BOT',
-          descripcion: 'El cliente inició el bot.'
+          descripcion: 'El cliente inició el bot.',
+          estado: EstadoConsulta.INICIADA
         
         }
       });
@@ -54,11 +55,11 @@ export const gestionarInteraccion = async (payload: ChatbotPayload) => {
     throw new Error('Fallo crítico: No se pudo obtener ni crear la consulta en la BD');
   }
 
-  if (consulta.estado === EstadoConsulta.NUEVA && ACCIONES_QUE_INICIAN_PROCESO.includes(accion)) {
+  if (consulta.estado === EstadoConsulta.INICIADA && ACCIONES_QUE_INICIAN_PROCESO.includes(accion)) {
     consulta = await prisma.consulta.update({
       where: { id: consulta.id },
       data: { 
-        estado: EstadoConsulta.EN_PROCESO,
+        estado: EstadoConsulta.NUEVA,
         descripcion: 'El cliente está recorriendo las opciones'
       
       },
@@ -76,21 +77,6 @@ export const gestionarInteraccion = async (payload: ChatbotPayload) => {
       contenido: contenidoCliente
     }
   });
-
-  // Si un humano está atendiendo, cortamos acá
-  if (sesion.estado === EstadoChat.HUMANO_ATENDIENDO) {
-    const mensajeBloqueo = consulta.tipoConsulta === 'COTIZACION'
-      ? "En este momento el emprendedor está armando la cotización de tu presupuesto. Por favor aguarda, se contactará contigo a la brevedad."
-      : "En este momento el emprendedor está revisando tu consulta. Por favor aguarda unos instantes.";
-
-    return { 
-      silenciado: true, 
-      respuesta: mensajeBloqueo,
-      botones: [],
-      requiereInput: false,
-      contexto: 'BLOQUEADO_POR_HUMANO'
-    };
-  }
 
   // Ejecutamos tu lógica original del bot
   const resultado = await procesarAccionBot(accion, sessionId, botId, datosCliente, contexto);
@@ -117,7 +103,6 @@ export const procesarAccionBot = async (
   datosCliente?: any,
   contexto?: string
 ) => {
-  // 1. Registrar eventos (ajusta esto si tenés más acciones que registrar)
   if (['MOSTRAR_CATALOGO', 'DERIVAR_HUMANO', 'SOLICITAR_PRESUPUESTO', 'MOSTRAR_FAQS', 'MOSTRAR_HORARIOS', 'ENVIAR_DATOS'].includes(accion)) {
     await enviarEventosQueue({
       botId,
@@ -377,18 +362,12 @@ export const procesarAccionBot = async (
                   asunto: esDerivacion ? 'Derivación de Chatbot' : 'Solicitud de Presupuesto/Cotización',
                   descripcion: descripcionConsulta,
                   derivada: esDerivacion, 
-                  estado: esDerivacion ? EstadoConsulta.EN_PROCESO : EstadoConsulta.CERRADA,
-                  cerradaPor: esDerivacion ? null : CerradaPor.BOT,
-                  fechaCierre: esDerivacion ? null : new Date(),  
+                  estado: EstadoConsulta.NUEVA,
+                  cerradaPor: null,
+                  fechaCierre: null,  
                 }
               });
-              
-              if (esDerivacion) {
-                await tx.sesionChat.update({
-                  where: { botId_sessionId: { botId: botId, sessionId: sessionId } },
-                  data: { estado: 'HUMANO_ATENDIENDO' } 
-                });
-              }
+                            
             });
 
             await enviarEventosQueue({

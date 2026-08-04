@@ -12,6 +12,7 @@ type ConsultationWithMessages = Prisma.ConsultaGetPayload<{ include: typeof cons
 
 const statusToApi = (estado: EstadoConsulta) => {
  const map: Record<EstadoConsulta, string> = {
+    INICIADA: 'iniciada',
     NUEVA: 'nueva',
     EN_PROCESO: 'en_proceso',
     RESUELTA: 'resuelta',
@@ -23,6 +24,8 @@ const statusToApi = (estado: EstadoConsulta) => {
 
 const statusToDb = (estado: UpdateConsultationStatusInput['estado']): EstadoConsulta => {
   const map: Record<string, EstadoConsulta> = {
+    
+    iniciada: EstadoConsulta.INICIADA,
     nueva: EstadoConsulta.NUEVA,
     en_proceso: EstadoConsulta.EN_PROCESO,
     resuelta: EstadoConsulta.RESUELTA,
