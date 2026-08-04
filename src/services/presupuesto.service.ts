@@ -392,8 +392,6 @@ export async function crearPresupuestoPublico(input: CrearPresupuestoPublicoInpu
         }
       : {
           estado: 'NUEVA',
-          cerradaPor: 'BOT',
-          fechaCierre: new Date(),
           tipoConsulta: 'PRESUPUESTO',
           asunto: 'Solicitud de Presupuesto/Cotización',
           descripcion,
