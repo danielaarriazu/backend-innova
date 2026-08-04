@@ -18,9 +18,8 @@ export async function obtenerResumenDashboard(usuarioId: string) {
     totalPresupuestos
   ] = await prisma.$transaction([
     prisma.consulta.count({ where: { botId } }),
-    // Ajustá 'EN_PROCESO' al estado que uses para "Requieren seguimiento"
     prisma.consulta.count({ where: { botId, estado: 'EN_PROCESO', derivada: true } }), 
-    prisma.consulta.count({ where: { botId, tipoConsulta: 'BOT' } }),
+    prisma.consulta.count({ where: { botId, estado: 'RESUELTA', cerradaPor: 'BOT' } }),
     prisma.presupuesto.count({ where: { consulta: { botId } } })
   ]);
 
