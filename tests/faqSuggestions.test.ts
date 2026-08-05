@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 import {
   FAQ_SUGGESTIONS,
@@ -76,7 +77,7 @@ test('la normalización detecta equivalencias de tildes, signos, espacios y orde
 
 test('el registro no crea categorías ni FAQ automáticas', () => {
   const authService = readFileSync(
-    new URL('../src/services/auth.service.ts', import.meta.url),
+    join(__dirname, '../src/services/auth.service.ts'),
     'utf8',
   );
 

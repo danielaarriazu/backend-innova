@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  INVALID_ANSWER_MESSAGE,
+  INVALID_QUESTION_MESSAGE,
+  pareceRespuestaValida,
+  pareceUnaPreguntaReal,
+} from '../utils/pareceUnaPreguntaReal';
 
 const uuidField = (label: string) =>
   z.string({ error: `El ${label} es obligatorio` }).uuid(`El ${label} debe ser un UUID válido`);
@@ -10,13 +16,15 @@ export const createFaqSchema = z.object({
     .string({ error: 'La pregunta es obligatoria' })
     .trim()
     .min(5, { error: 'La pregunta debe tener al menos 5 caracteres' })
-    .max(500, 'La pregunta no puede superar los 500 caracteres'),
+    .max(500, 'La pregunta no puede superar los 500 caracteres')
+    .refine(pareceUnaPreguntaReal, { error: INVALID_QUESTION_MESSAGE }),
 
   respuesta: z
     .string({ error: 'La respuesta es obligatoria' })
     .trim()
     .min(1, 'La respuesta no puede estar vacía')
-    .max(2000, 'La respuesta no puede superar los 2000 caracteres'),
+    .max(2000, 'La respuesta no puede superar los 2000 caracteres')
+    .refine(pareceRespuestaValida, { error: INVALID_ANSWER_MESSAGE }),
 
 });
 
@@ -28,6 +36,7 @@ export const updateFaqSchema = z.object({
     .trim()
     .min(5, 'La pregunta debe tener al menos 5 caracteres')
     .max(500, 'La pregunta no puede superar los 500 caracteres')
+    .refine(pareceUnaPreguntaReal, { error: INVALID_QUESTION_MESSAGE })
     .optional(),
 
   respuesta: z
@@ -35,6 +44,7 @@ export const updateFaqSchema = z.object({
     .trim()
     .min(1, 'La respuesta no puede estar vacía')
     .max(2000, 'La respuesta no puede superar los 2000 caracteres')
+    .refine(pareceRespuestaValida, { error: INVALID_ANSWER_MESSAGE })
     .optional(),
 
 }).refine(
