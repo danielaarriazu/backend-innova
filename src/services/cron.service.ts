@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import prisma from '../lib/prisma';
-import { EstadoConsulta, CerradaPor } from '@prisma/client';
+import { EstadoConsulta, CerradaPor, MotivoCierre } from '@prisma/client';
 
 export async function limpiarConsultasInactivas() {
   try {
@@ -38,6 +38,7 @@ export async function limpiarConsultasInactivas() {
         data: {
           estado: EstadoConsulta.RESUELTA,
           cerradaPor: CerradaPor.BOT,
+          MotivoCierre: MotivoCierre.INACTIVIDAD,
           fechaCierre: new Date(),
         },
       }

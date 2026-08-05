@@ -60,6 +60,17 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
     throw new Error('BOT_NOT_FOUND');
   }
 
+  let lifecycleEvent: 'SESSION_EXPIRED_INACTIVITY' | null = null;
+  if (sessionId) {
+    const consultaPrevia = await prisma.consulta.findFirst({
+      where: { botId: bot.id, sessionId },
+      select: { MotivoCierre: true },
+    });
+    if (consultaPrevia?.MotivoCierre === 'INACTIVIDAD') {
+      lifecycleEvent = 'SESSION_EXPIRED_INACTIVITY';
+    }
+  }
+
   const { sessionId: finalSessionId, hasHistory } = await resolveChatSession({
     botId: bot.id,
     requestedSessionId: sessionId,
