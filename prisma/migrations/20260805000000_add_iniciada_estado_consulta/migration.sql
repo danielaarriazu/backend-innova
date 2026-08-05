@@ -1,0 +1,2 @@
+-- ExtendEnum
+ALTER TYPE "EstadoConsulta" ADD VALUE IF NOT EXISTS 'INICIADA';
