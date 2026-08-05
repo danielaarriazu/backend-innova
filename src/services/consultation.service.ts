@@ -177,6 +177,9 @@ export const agregarMensajePublico = async (data: AddConsultationMessageInput) =
     where: { id: data.consultaId, bot: { slug: data.slug, activo: true } },
   });
   if (!consulta) throw new Error('CONSULTATION_NOT_FOUND');
+  if (consulta.estado === 'RESUELTA' || consulta.estado === 'CERRADA' || consulta.fechaCierre) {
+    throw new Error('CONSULTATION_CLOSED'); 
+  }
 
   let tipoFinal: TipoMensaje = TipoMensaje.TEXTO;
 
