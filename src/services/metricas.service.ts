@@ -19,7 +19,15 @@ export async function obtenerResumenDashboard(usuarioId: string) {
   ] = await prisma.$transaction([
     prisma.consulta.count({ where: { botId } }),
     prisma.consulta.count({ where: { botId, estado: 'EN_PROCESO', derivada: true } }), 
-    prisma.consulta.count({ where: { botId, estado: 'RESUELTA', cerradaPor: 'BOT' } }),
+    prisma.consulta.count({
+      where: {
+        botId,
+        OR: [
+          { estado: 'RESUELTA', cerradaPor: 'BOT' },
+          { tipoConsulta: 'PRESUPUESTO', estado: 'NUEVA' },
+        ],
+      },
+    }),
     prisma.presupuesto.count({ where: { consulta: { botId } } })
   ]);
 

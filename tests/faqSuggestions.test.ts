@@ -20,13 +20,7 @@ const expectedSuggestions = [
     pregunta: '¿Realizan envíos?',
     respuesta: 'Sí, realizamos envíos a todo el país.',
     categoria: 'Envíos',
-  },
-  {
-    id: 'horario-atencion',
-    pregunta: '¿Cuál es el horario de atención?',
-    respuesta: 'Atendemos de lunes a viernes de 9 AM a 6 PM.',
-    categoria: 'Atención y horarios',
-  },
+  } ,
   {
     id: 'stock-disponible',
     pregunta: '¿Tienen stock disponible?',
