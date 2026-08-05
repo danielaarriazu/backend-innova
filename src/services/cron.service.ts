@@ -38,7 +38,7 @@ export async function limpiarConsultasInactivas() {
         data: {
           estado: EstadoConsulta.RESUELTA,
           cerradaPor: CerradaPor.BOT,
-          MotivoCierre: MotivoCierre.INACTIVIDAD,
+          motivoCierre: MotivoCierre.INACTIVIDAD,
           fechaCierre: new Date(),
         },
       }

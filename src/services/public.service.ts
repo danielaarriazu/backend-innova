@@ -64,9 +64,9 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
   if (sessionId) {
     const consultaPrevia = await prisma.consulta.findFirst({
       where: { botId: bot.id, sessionId },
-      select: { MotivoCierre: true },
+      select: { motivoCierre: true },
     });
-    if (consultaPrevia?.MotivoCierre === 'INACTIVIDAD') {
+    if (consultaPrevia?.motivoCierre === 'INACTIVIDAD') {
       lifecycleEvent = 'SESSION_EXPIRED_INACTIVITY';
     }
   }
@@ -104,6 +104,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
   return {
     sessionId: finalSessionId,
     hasHistory,
+    lifecycleEvent,
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',

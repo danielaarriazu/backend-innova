@@ -255,7 +255,7 @@ model Consulta {
   derivada           Boolean            @default(false)
   cerradaPor         CerradaPor?
   tipoConsulta       String?
-  MotivoCierre       MotivoCierre?
+  motivoCierre       MotivoCierre?
   canal              String             @default("web")
   asunto             String?
   descripcion        String?            @db.Text
