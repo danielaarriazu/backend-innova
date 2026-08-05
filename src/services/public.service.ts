@@ -104,6 +104,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
   return {
     sessionId: finalSessionId,
     hasHistory,
+    lifecycleEvent,
     botData: {
       botId: bot.id,
       nombre: bot.nombreNegocio || 'Asistente Virtual',
