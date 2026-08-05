@@ -10,13 +10,13 @@ const getRequestMeta = (req: Request) => ({
 
 export const createFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const faq = await faqService.crearFAQ({
+    const { posibleDuplicado, ...faq } = await faqService.crearFAQ({
       usuarioId: req.usuario!.id,
       ...req.body,
       ...getRequestMeta(req),
     });
 
-    res.status(201).json({ success: true, message: 'Pregunta creada con éxito.', faq });
+    res.status(201).json({ success: true, message: 'Pregunta creada con éxito.', faq, posibleDuplicado });
   } catch (error: unknown) {
     if (error instanceof Error) {
       if (error.message === 'BOT_NOT_FOUND') {
@@ -52,14 +52,14 @@ export const getFAQs = async (req: Request, res: Response, next: NextFunction): 
 
 export const updateFAQ = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const faq = await faqService.actualizarFAQ({
+    const { posibleDuplicado, ...faq } = await faqService.actualizarFAQ({
       usuarioId: req.usuario!.id,
       faqId: req.params.id,
       ...req.body,
       ...getRequestMeta(req),
     });
 
-    res.status(200).json({ success: true, message: 'Pregunta actualizada con éxito.', faq });
+    res.status(200).json({ success: true, message: 'Pregunta actualizada con éxito.', faq, posibleDuplicado });
   } catch (error: unknown) {
     if (error instanceof Error) {
       if (error.message === 'BOT_NOT_FOUND') {

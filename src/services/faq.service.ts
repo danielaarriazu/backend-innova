@@ -9,12 +9,36 @@ import {
   UpdateFaqInput,
 } from '../types/faq.types';
 import { normalizeFaqQuestion } from '../utils/normalizeFaqQuestion';
+import { similarity } from '../utils/levenshtein';
 import {
   FAQ_SUGGESTIONS,
   FAQ_SUGGESTION_LEGACY_QUESTIONS,
   FaqSuggestionId,
   getFaqSuggestionsByIds,
 } from '../data/faqSuggestions';
+
+// Umbral de similitud para avisar (no bloquear) — 0.85 dejó pasar preguntas
+// genuinamente distintas en las pruebas y agarró el caso real "tienne"/"tienen" (0.90).
+const UMBRAL_SIMILITUD_AVISO = 0.85;
+
+const buscarPreguntaParecida = async (botId: string, preguntaNormalizada: string, faqId?: string) => {
+  const existentes = await prisma.faq.findMany({
+    where: { botId, ...(faqId ? { id: { not: faqId } } : {}) },
+    select: { id: true, pregunta: true, preguntaNormalizada: true },
+  });
+
+  let mejorCoincidencia: { id: string; pregunta: string; similitud: number } | null = null;
+
+  for (const faq of existentes) {
+    if (!faq.preguntaNormalizada) continue;
+    const sim = similarity(preguntaNormalizada, faq.preguntaNormalizada);
+    if (sim >= UMBRAL_SIMILITUD_AVISO && sim < 1 && (!mejorCoincidencia || sim > mejorCoincidencia.similitud)) {
+      mejorCoincidencia = { id: faq.id, pregunta: faq.pregunta, similitud: Math.round(sim * 100) / 100 };
+    }
+  }
+
+  return mejorCoincidencia;
+};
 
 const faqSelect = {
   id: true,
@@ -65,6 +89,7 @@ export const crearFAQ = async (data: CreateFaqInput) => {
   const pregunta = data.pregunta.trim();
   const preguntaNormalizada = normalizeFaqQuestion(pregunta);
   await verificarPreguntaDuplicada(bot.id, preguntaNormalizada);
+  const posibleDuplicado = await buscarPreguntaParecida(bot.id, preguntaNormalizada);
 
   const nuevaFAQ = await prisma.faq.create({
     data: {
@@ -87,7 +112,7 @@ export const crearFAQ = async (data: CreateFaqInput) => {
     data.dispositivo
   );
  
-  return nuevaFAQ;
+  return { ...nuevaFAQ, posibleDuplicado };
 };
 
 export const obtenerFAQs = async (usuarioId: string, filtros: GetFaqsInput) => {
@@ -151,6 +176,9 @@ export const actualizarFAQ = async (data: UpdateFaqInput) => {
     ? normalizeFaqQuestion(pregunta)
     : faqExistente.preguntaNormalizada;
   if (preguntaNormalizada) await verificarPreguntaDuplicada(bot.id, preguntaNormalizada, data.faqId);
+  const posibleDuplicado = data.pregunta && preguntaNormalizada
+    ? await buscarPreguntaParecida(bot.id, preguntaNormalizada, data.faqId)
+    : null;
 
   const faqActualizada = await prisma.faq.update({
     where: { id: data.faqId },
@@ -173,7 +201,7 @@ export const actualizarFAQ = async (data: UpdateFaqInput) => {
     data.dispositivo
   );
 
-  return faqActualizada;
+  return { ...faqActualizada, posibleDuplicado };
 };
 
 export const eliminarFAQ = async (data: DeleteFaqInput) => {
