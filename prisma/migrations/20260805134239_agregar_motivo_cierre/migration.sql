@@ -1,0 +1,6 @@
+-- CreateEnum
+CREATE TYPE "MotivoCierre" AS ENUM ('INACTIVIDAD', 'RESOLUCION_EMPRENDEDOR', 'RESOLUCION_CLIENTE');
+
+-- AlterTable
+ALTER TABLE "Consulta" ADD COLUMN     "MotivoCierre" "MotivoCierre",
+ALTER COLUMN "estado" SET DEFAULT 'INICIADA';
