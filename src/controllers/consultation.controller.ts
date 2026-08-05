@@ -11,6 +11,10 @@ const handleKnownError = (error: unknown, res: Response): boolean => {
     res.status(404).json({ success: false, error: 'Consulta no encontrada.' });
     return true;
   }
+  if (error.message === 'CONSULTATION_CLOSED') {
+  res.status(409).json({ success: false, error: 'Esta conversación ya finalizó. Iniciá una nueva.' });
+  return true;
+}
   return false;
 };
 

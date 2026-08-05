@@ -64,6 +64,7 @@ export const obtenerInitBot= async (slug: string, sessionId?: string) => {
   if (sessionId) {
     const consultaPrevia = await prisma.consulta.findFirst({
       where: { botId: bot.id, sessionId },
+      orderBy: { fechaCreacion: 'desc' },
       select: { motivoCierre: true },
     });
     if (consultaPrevia?.motivoCierre === 'INACTIVIDAD') {
